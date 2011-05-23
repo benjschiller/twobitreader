@@ -21,6 +21,7 @@ def main():
 	      author_email='benjamin.schiller@ucsf.edu',
 	      packages = ['twobitreader'],
 	      package_dir = {'twobitreader': 'src'},
+          url = 'http://bitbucket.org/thesylex/twobitreader',
 	      classifiers = [
 						'Development Status :: 5 - Production/Stable',
 						'License :: OSI Approved :: Artistic License'

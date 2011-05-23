@@ -1,0 +1,8 @@
+twobitreader is a fast python class for reading 2-bit files
+(used by UCSC genome browser)
+
+To install, run
+$ python setup.py install 
+
+Licensed under Perl Artistic License 2.0
+No warranty is provided, express or implied
