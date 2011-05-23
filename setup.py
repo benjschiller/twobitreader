@@ -24,7 +24,7 @@ def main():
           url = 'http://bitbucket.org/thesylex/twobitreader',
 	      classifiers = [
 						'Development Status :: 5 - Production/Stable',
-						'License :: OSI Approved :: Artistic License'
+						'License :: OSI Approved :: Artistic License',
 						'Intended Audience :: Developers',
 						'Intended Audience :: End User/Desktop',
 						'Intended Audience :: Science/Research',
