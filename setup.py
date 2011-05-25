@@ -15,7 +15,7 @@ from distutils.core import setup
 
 def main():
 	setup(name='twobitreader',
-          version = "1.0",
+          version = "1.01",
 	      description='A fast python class for reading 2-bit files (used by UCSC genome browser)',
 	      author='Benjamin Schiller',
 	      author_email='benjamin.schiller@ucsf.edu',
