@@ -347,7 +347,7 @@ for k,v in d.iteritems(): d[k] = str(v)
             start -= min
             end -= min
             string_as_array[start:end] = array('c', lower(string_as_array[start:end].tostring()))
-        return string_as_array[0:]
+        return string_as_array.tostring()
 
     def __str__(self):
         """
