@@ -98,14 +98,14 @@ def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size):
     first_block = ''.join([''.join(BYTE_TABLE[bytes[x]]) for x in range(4)])
     i = 16 - first_base_offset
     if array_size < i: i = array_size
-    dna[0:i] = first_block[first_base_offset:first_base_offset + i]
+    dna[0:i] = array('c', first_block[first_base_offset:first_base_offset + i])
     if longs_len == 1: return dna
     # middle blocks (implicitly skipped if they don't exist)
     for byte in bytes[4:-4]:
-        dna[i:i + 4] = BYTE_TABLE[byte]
+        dna[i:i + 4] = array('c', BYTE_TABLE[byte])
         i += 4
     # last block
-    last_block = ''.join([''.join(BYTE_TABLE[bytes[x]]) for x in range(-4,0)])
+    last_block = array('c', ''.join([''.join(BYTE_TABLE[bytes[x]]) for x in range(-4,0)]))
     dna[i:i + last_base_offset] = last_block[0:last_base_offset]
     return dna
 
@@ -346,7 +346,7 @@ for k,v in d.iteritems(): d[k] = str(v)
             if end > max: end = max 
             start -= min
             end -= min
-            string_as_array[start:end] = lower(string_as_array[start:end])
+            string_as_array[start:end] = array('c', lower(string_as_array[start:end].tostring()))
         return string_as_array[0:]
 
     def __str__(self):
