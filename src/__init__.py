@@ -331,7 +331,7 @@ for k,v in d.iteritems(): d[k] = str(v)
             if end > max: end = max 
             start -= min
             end -= min
-            string_as_array[start:end] = 'N'*(end-start)
+            string_as_array[start:end] = array('c', 'N'*(end-start))
         lower = str.lower
         first_useful = bisect_right(mask_block_starts, min) - 1
         if first_useful == -1: first_useful = 0
