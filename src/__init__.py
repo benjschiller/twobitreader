@@ -220,6 +220,7 @@ Fair warning: dumping the entire chromosome requires a lot of memory
  
 Note that we follow python/UCSC conventions:
 Coordinates are 0-based, end-open
+(Note: The UCSC web-based genome browser uses 1-based closed coordinates)
 If you attempt to access a slice past the end of the sequence,
 it will be truncated at the end.
 
@@ -300,17 +301,18 @@ for k,v in d.iteritems(): d[k] = str(v)
         if max is None: region_size = dna_size - min
         else: region_size = max - min
         
-        # first_block, last_block are the first/last 32-bit blocks we need
+        # start_block, end_block are the first/last 32-bit blocks we need
+        # note: end_block is not read
         # blocks start at 0
-        first_block = min / 16
-        last_block = max / 16
+        start_block = min / 16
+        end_block = (max - 1) / 16
         # don't read past seq end
-        if last_block >= packed_dna_size: last_block = packed_dna_size -1
+        if end_block >= packed_dna_size: end_block = packed_dna_size - 1
         # +1 we still need to read block
-        blocks_to_read = last_block - first_block + 1
+        blocks_to_read = end_block - start_block + 1
         
         # jump directly to desired file location
-        local_offset = offset + first_block * 4
+        local_offset = offset + start_block * 4
         file_handle.seek(local_offset)
         
         # note we won't actually read the last base
@@ -333,12 +335,13 @@ for k,v in d.iteritems(): d[k] = str(v)
             end -= min
             string_as_array[start:end] = 'N'*(end-start)
         lower = str.lower
-        first_useful = bisect_right(mask_block_starts, min) - 1
-        if first_useful == -1: first_useful = 0
-        last_useful = 1 + bisect_right(mask_block_starts, max,
-                                             lo=first_useful)
-        for start, size in izip(mask_block_starts[first_useful:last_useful],
-                                mask_block_sizes[first_useful:last_useful]):
+        first_masked_region = max(0,
+                                  bisect_right(mask_block_starts, min) - 1)
+        last_masked_region = min(len(masked_block_starts),
+                                 1 + bisect_right(mask_block_starts, max,
+                                                  lo=first_masked_region))
+        for start, size in izip(mask_block_starts[first_masked_region:last_masked_region],
+                                mask_block_sizes[first_masked_region:last_masked_region]):
             end = start + size
             if end <= min: continue
             if start > max: break
