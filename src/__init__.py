@@ -333,7 +333,7 @@ for k,v in d.iteritems(): d[k] = str(v)
             if end > max: end = max 
             start -= min
             end -= min
-            string_as_array[start:end] = 'N'*(end-start)
+            string_as_array[start:end] = array('c', 'N'*(end-start))
         lower = str.lower
         first_masked_region = max(0,
                                   bisect_right(mask_block_starts, min) - 1)
