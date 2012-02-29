@@ -15,15 +15,17 @@ from distutils.core import setup
 
 def main():
 	setup(name='twobitreader',
-          version = "1.05",
+          version = "2.0",
 	      description='A fast python class for reading 2-bit files (used by UCSC genome browser)',
 	      author='Benjamin Schiller',
 	      author_email='benjamin.schiller@ucsf.edu',
+          #py_modules = ['twobitreader'],
 	      packages = ['twobitreader'],
 	      package_dir = {'twobitreader': 'src'},
+	      #package_dir = {'': 'src'},
           url = 'http://bitbucket.org/thesylex/twobitreader',
 	      classifiers = [
-						'Development Status :: 5 - Production/Stable',
+						'Development Status :: 4 - Beta',
 						'License :: OSI Approved :: Artistic License',
 						'Intended Audience :: Developers',
 						'Intended Audience :: End Users/Desktop',

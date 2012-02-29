@@ -11,9 +11,11 @@ from os import R_OK, access
 try:
     from os import strerror
 except ImportError:
-    strerror = lambda: 'strerror not supported'
+    strerror = lambda x: 'strerror not supported'
 from os.path import exists
 from itertools import izip
+import logging
+import textwrap
 
 def true_long_type():
     """
@@ -158,12 +160,13 @@ See TwoBitSequence for more info
         if not signature == 0x1A412743:
             byteswapped = True
             header.byteswap()
-            (signature, version, sequence_count, reserved) = header
-            if not signature == 0x1A412743:
-                raise TwoBitFileError('Signature in header should be 0x1A412743.')
+            (signature2, version, sequence_count, reserved) = header
+            if not signature2 == 0x1A412743:
+                raise TwoBitFileError('Signature in header should be 0x1A412743'
+                                    + ', instead found 0x%X' % signature)
         if not version == 0: 
             raise TwoBitFileError('File version in header should be 0.')
-        if not reserved == 0: 
+        if not reserved == 0:
             raise TwoBitFileError('Reserved field in header should be 0.')
         self._byteswapped = byteswapped
         self._sequence_count = sequence_count
@@ -268,26 +271,26 @@ for k,v in d.iteritems(): d[k] = str(v)
     def __len__(self):
         return self._dna_size
 
-    def __getslice__(self, min, max=None):
-        return self.get_slice(min, max)
+    def __getslice__(self, min_, max_=None):
+        return self.get_slice(min_, max_)
 
-    def get_slice(self, min, max=None):
+    def get_slice(self, min_, max_=None):
         """
         get_slice returns only a sub-sequence
         """
         # handle negative coordinates
         dna_size = self._dna_size
-        if max < 0:
-            if max < -dna_size: raise IndexError('index out of range')
-            max = dna_size + 1 + max
-        if min < 0:
-            if max < -dna_size: raise IndexError('index out of range')
-            min = dna_size + 1 + min
+        if max_ < 0:
+            if max_ < -dna_size: raise IndexError('index out of range')
+            max_ = dna_size + 1 + max_
+        if min_ < 0:
+            if max_ < -dna_size: raise IndexError('index out of range')
+            min_ = dna_size + 1 + min_
         # make sure there's a proper range
-        if min > max and max is not None: return ''
-        if max == 0: return ''
+        if min_ > max_ and max_ is not None: return ''
+        if max_ == 0: return ''
         # load all the data
-        if max > dna_size: max = dna_size
+        if max_ > dna_size: max_ = dna_size
         file_handle = self._file_handle
         byteswapped = self._byteswapped
         n_block_starts = self._n_block_starts
@@ -298,14 +301,14 @@ for k,v in d.iteritems(): d[k] = str(v)
         packed_dna_size = self._packed_dna_size
 
         # region_size is how many bases the region is       
-        if max is None: region_size = dna_size - min
-        else: region_size = max - min
+        if max_ is None: region_size = dna_size - min_
+        else: region_size = max_ - min_
         
         # start_block, end_block are the first/last 32-bit blocks we need
         # note: end_block is not read
         # blocks start at 0
-        start_block = min / 16
-        end_block = (max - 1) / 16
+        start_block = min_ / 16
+        end_block = (max_ - 1) / 16
         # don't read past seq end
         if end_block >= packed_dna_size: end_block = packed_dna_size - 1
         # +1 we still need to read block
@@ -317,8 +320,8 @@ for k,v in d.iteritems(): d[k] = str(v)
         
         # note we won't actually read the last base
         # this is a python slice first_base_offset:16*blocks+last_base_offset
-        first_base_offset = min % 16
-        last_base_offset = max % 16
+        first_base_offset = min_ % 16
+        last_base_offset = max_ % 16
         
         fourbyte_dna = array(LONG)
         fourbyte_dna.fromfile(file_handle, blocks_to_read)
@@ -327,28 +330,28 @@ for k,v in d.iteritems(): d[k] = str(v)
                                               last_base_offset, region_size)
         for start, size in izip(n_block_starts, n_block_sizes):
             end = start + size
-            if end <= min: continue
-            if start > max: break
-            if start < min: start = min
-            if end > max: end = max 
-            start -= min
-            end -= min
+            if end <= min_: continue
+            if start > max_: break
+            if start < min_: start = min_
+            if end > max_: end = max_ 
+            start -= min_
+            end -= min_
             string_as_array[start:end] = array('c', 'N'*(end-start))
         lower = str.lower
         first_masked_region = max(0,
-                                  bisect_right(mask_block_starts, min) - 1)
-        last_masked_region = min(len(masked_block_starts),
-                                 1 + bisect_right(mask_block_starts, max,
+                                  bisect_right(mask_block_starts, min_) - 1)
+        last_masked_region = min(len(mask_block_starts),
+                                 1 + bisect_right(mask_block_starts, max_,
                                                   lo=first_masked_region))
         for start, size in izip(mask_block_starts[first_masked_region:last_masked_region],
                                 mask_block_sizes[first_masked_region:last_masked_region]):
             end = start + size
-            if end <= min: continue
-            if start > max: break
-            if start < min: start = min
-            if end > max: end = max 
-            start -= min
-            end -= min
+            if end <= min_: continue
+            if start > max_: break
+            if start < min_: start = min_
+            if end > max_: end = max_ 
+            start -= min_
+            end -= min_
             string_as_array[start:end] = array('c', lower(string_as_array[start:end].tostring()))
         return string_as_array.tostring()
 
@@ -420,3 +423,72 @@ necessary so that it takes an even multiple of 32 bit in the file, as this \
 improves i/o performance on some machines.
 .nib files
 """
+
+def cmdline_reader():
+    """
+    cmdline_reader allows twobitreader module to be executed as a script
+    accepts only one argument -- the .2bit filename
+    reads input (BED format) from stdin
+    writes output (FASTA format) to stdout
+    writes errors/warning to stderr
+    
+    Regions should be given in BED format on stdin
+    chrom    start(0-based)    end(0-based, not included)
+    
+    To use a BED file of regions, do
+    python -m twobitreader example.2bit < example.bed
+    
+    Non-regions will be skipped and warnings will be issued to logging
+    (logging output to stderr by default)
+    """
+    import sys
+    # if no argument provided, print docstring
+    if len(sys.argv) == 1:
+        print sys.argv[0] + ":"
+        print cmdline_reader.__doc__
+        sys.exit()
+    # if user is trying to get help, print docstring
+    elif len(sys.argv) == 2 and sys.argv[1] in ['--help', '-h', '-help']:
+        print sys.argv[0] + ":"
+        print cmdline_reader.__doc__
+        sys.exit()
+    # if user specified multiple files, exit with error
+    elif len(sys.argv) > 2:
+        sys.exit("Too many files specified")
+    # otherwise proceed with opening the .2bit file
+    twobit_file = TwoBitFile(sys.argv[1])
+    # print error/warning messages as we go
+    warning_msg = 'Invalid %s at line %d\n\t"%s"'
+    for i, line in enumerate((line.rstrip('\n\r') for line in sys.stdin)):
+        fields = line.split()
+        if not len(fields) >= 3:
+            logging.warn(warning_msg, 'start', i, line)
+            continue
+        chrom = fields[0]
+        if not twobit_file.has_key(chrom):
+            logging.warn(warning_msg, 'chrom', i, line)
+            continue
+        try: start = long(fields[1])
+        except ValueError:
+            logging.warn(warning_msg, 'start', i, line)
+        if start < 0:
+            logging.warn(warning_msg, 'start', i, line)
+            logging.warn('Using 0 as start instead for line %d', i)
+            start = 0
+        try: end = long(fields[2])
+        except ValueError:
+            logging.warn(warning_msg, 'end', i, line)
+            continue
+        chrom_len = len(twobit_file[chrom])
+        if end > len(twobit_file[chrom]):
+            logging.warn('At line %d, end is greater than chrom length %d\n%s',
+                         i, chrom_len, line)
+            logging.warn('Sequence will be truncated at chrom' +
+                         'length for line %d', i)
+            end = chrom_length
+        seq = twobit_file[chrom][start:end]
+        print ">%s:%d-%d" % (chrom, start, end)
+        print textwrap.fill(seq, 60)
+    return
+
+if __name__ == '__main__': cmdline_reader()

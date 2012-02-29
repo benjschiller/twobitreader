@@ -4,5 +4,10 @@ twobitreader is a fast python class for reading 2-bit files
 To install, run
 $ python setup.py install 
 
+Can be run as a script
+python -m twobitreader example.2bit < example.bed
+
+Or imported as a module ("twobitreader")
+
 Licensed under Perl Artistic License 2.0
 No warranty is provided, express or implied

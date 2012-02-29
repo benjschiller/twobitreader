@@ -1,3 +1,13 @@
+02-29-12
+Added ability to run as a script, e.g.
+python -m twobitreader example.2bit < example.bed
+
+Added download module to fetch genomes from UCSC
+
+Bugfixes: max/min in get_slice (thought that was fixed)
+Updated version to 2.0
+Downgraded status to Beta
+
 02-10-2012
 Minor bugfixes
 Updated version to 1.05
