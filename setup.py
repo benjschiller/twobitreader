@@ -12,10 +12,25 @@ if platform.system() == 'Java':
 
 import sys
 from distutils.core import setup
+cmdclass = {}
+try:
+    from sphinx.setup_command import BuildDoc
+    cmdclass['build_sphinx'] = BuildDoc
+except ImportError: pass
+try:
+    from sphinx_pypi_upload import UploadDoc
+    cmdclass['upload_sphinx'] = UploadDoc
+except ImportError: pass
+	
+name='twobitreader'
+version = "2.1"
+release = "2.1"
 
 def main():
-	setup(name='twobitreader',
-          version = "2.0",
+	setup(
+	  name=name,
+          version = version,
+	  release = release,
 	      description='A fast python package for reading .2bit files (used by the UCSC genome browser)',
 	      author='Benjamin Schiller',
 	      author_email='benjamin.schiller@ucsf.edu',
@@ -23,7 +38,13 @@ def main():
 	      packages = ['twobitreader'],
 	      package_dir = {'twobitreader': 'src'},
 	      #package_dir = {'': 'src'},
-          url = 'http://bitbucket.org/thesylex/twobitreader',
+              url = 'http://bitbucket.org/thesylex/twobitreader',
+              cmdclass=cmdclass,
+              command_options={
+	      'project': ('setup.py', name),
+	      'version': ('setup.py', version),
+	      'release': ('setup.py', release)
+	      },
 	      classifiers = [
 						'Development Status :: 4 - Beta',
 						'License :: OSI Approved :: Artistic License',
