@@ -1,4 +1,4 @@
-twobitreader is a fast python class for reading 2-bit files
+twobitreader is a fast python package for reading .2bit files
 (used by UCSC genome browser)
 
 To install, run
