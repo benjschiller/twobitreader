@@ -1,3 +1,6 @@
+03-01-12
+Fixed super() syntax to remove warning
+
 02-29-12
 Added ability to run as a script, e.g.
 python -m twobitreader example.2bit < example.bed

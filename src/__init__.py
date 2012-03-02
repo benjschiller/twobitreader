@@ -135,7 +135,7 @@ See TwoBitSequence for more info
     """
     
     def __init__(self, foo):
-        super(dict, self).__init__(self)
+        super(TwoBitFile, self).__init__()
         if not exists(foo):
             raise IOError(ENOENT, strerror(ENOENT), foo)
         if not access(foo, R_OK):

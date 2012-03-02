@@ -23,14 +23,14 @@ try:
 except ImportError: pass
 	
 name='twobitreader'
-version = "2.1"
-release = "2.1"
+version = "2.2"
+release = "2.2"
 
 def main():
 	setup(
-	  name=name,
+    	  name=name,
           version = version,
-	  release = release,
+    	  release = release,
 	      description='A fast python package for reading .2bit files (used by the UCSC genome browser)',
 	      author='Benjamin Schiller',
 	      author_email='benjamin.schiller@ucsf.edu',
@@ -38,12 +38,12 @@ def main():
 	      packages = ['twobitreader'],
 	      package_dir = {'twobitreader': 'src'},
 	      #package_dir = {'': 'src'},
-              url = 'http://bitbucket.org/thesylex/twobitreader',
-              cmdclass=cmdclass,
-              command_options={
-	      'project': ('setup.py', name),
-	      'version': ('setup.py', version),
-	      'release': ('setup.py', release)
+          url = 'http://bitbucket.org/thesylex/twobitreader',
+          cmdclass=cmdclass,
+          command_options={
+    	      'project': ('setup.py', name),
+    	      'version': ('setup.py', version),
+    	      'release': ('setup.py', release)
 	      },
 	      classifiers = [
 						'Development Status :: 4 - Beta',
