@@ -23,14 +23,12 @@ try:
 except ImportError: pass
 	
 name='twobitreader'
-version = "2.2"
-release = "2.2"
+version = "2.3"
 
 def main():
 	setup(
     	  name=name,
           version = version,
-    	  release = release,
 	      description='A fast python package for reading .2bit files (used by the UCSC genome browser)',
 	      author='Benjamin Schiller',
 	      author_email='benjamin.schiller@ucsf.edu',
@@ -43,7 +41,6 @@ def main():
           command_options={
     	      'project': ('setup.py', name),
     	      'version': ('setup.py', version),
-    	      'release': ('setup.py', release)
 	      },
 	      classifiers = [
 						'Development Status :: 4 - Beta',

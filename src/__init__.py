@@ -308,7 +308,7 @@ for k,v in d.iteritems(): d[k] = str(v)
         # note: end_block is not read
         # blocks start at 0
         start_block = min_ / 16
-        end_block = (max_ - 1) / 16
+        end_block = (max_ + 1) / 16
         # don't read past seq end
         if end_block >= packed_dna_size: end_block = packed_dna_size - 1
         # +1 we still need to read block
