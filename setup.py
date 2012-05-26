@@ -23,7 +23,7 @@ try:
 except ImportError: pass
 	
 name='twobitreader'
-version = "2.4"
+version = "2.5"
 
 def main():
 	setup(

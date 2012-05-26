@@ -16,6 +16,7 @@ from os.path import exists
 from itertools import izip
 import logging
 import textwrap
+import sys
 
 def true_long_type():
     """
@@ -443,25 +444,47 @@ def cmdline_reader():
     Non-regions will be skipped and warnings will be issued to logging
     (logging output to stderr by default)
     """
-    import sys
     # if no argument provided, print docstring
-    if len(sys.argv) == 1:
-        print sys.argv[0] + ":"
+    argv = sys.argv
+    if len(argv) == 1:
+        print argv[0] + ":"
         print cmdline_reader.__doc__
         sys.exit()
+        return
     # if user is trying to get help, print docstring
-    elif len(sys.argv) == 2 and sys.argv[1] in ['--help', '-h', '-help']:
-        print sys.argv[0] + ":"
+    elif len(argv) == 2 and argv[1] in ['--help', '-h', '-help']:
+        print argv[0] + ":"
         print cmdline_reader.__doc__
         sys.exit()
+        return
     # if user specified multiple files, exit with error
-    elif len(sys.argv) > 2:
+    elif len(argv) > 2:
         sys.exit("Too many files specified")
+        return
     # otherwise proceed with opening the .2bit file
-    twobit_file = TwoBitFile(sys.argv[1])
+    twobit_file = TwoBitFile(argv[1])
     # print error/warning messages as we go
     warning_msg = 'Invalid %s at line %d\n\t"%s"'
-    for i, line in enumerate((line.rstrip('\n\r') for line in sys.stdin)):
+    twobit_reader(twobit_file, input_stream=sys.stdin)
+
+def twobit_reader(twobit_file, input_stream=None, write=None):
+    """
+    twobit_reader takes a twobit_file (of class TwoBitFile)
+    and an "input_stream" which can be any iterable (incl. file-like objects)
+    writes output (FASTA format) using write (default is to print, if write=None)
+    logs errors/warning to stderr
+    
+    Regions should be given in BED format on stdin
+    chrom    start(0-based)    end(0-based, not included)
+    
+    To use a BED file of regions, do
+    python -m twobitreader example.2bit < example.bed
+    
+    Non-regions will be skipped and warnings will be issued to logging
+    (logging output to stderr by default)
+    """
+    if input_stream is None: return
+    for i, line in enumerate((line.rstrip('\n\r') for line in input_stream)):
         fields = line.split()
         if not len(fields) >= 3:
             logging.warn(warning_msg, 'start', i, line)
@@ -489,8 +512,12 @@ def cmdline_reader():
                          'length for line %d', i)
             end = chrom_length
         seq = twobit_file[chrom][start:end]
-        print ">%s:%d-%d" % (chrom, start, end)
-        print textwrap.fill(seq, 60)
+        if write is not None:
+            write(">%s:%d-%d" % (chrom, start, end))
+            write(textwrap.fill(seq, 60))
+        else:
+            print ">%s:%d-%d" % (chrom, start, end)
+            print textwrap.fill(seq, 60)
     return
 
 if __name__ == '__main__': cmdline_reader()
