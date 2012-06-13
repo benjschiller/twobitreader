@@ -12,7 +12,7 @@ try:
     from os import strerror
 except ImportError:
     strerror = lambda x: 'strerror not supported'
-from os.path import exists
+from os.path import exists, getsize
 from itertools import izip
 import logging
 import textwrap
@@ -85,7 +85,8 @@ def create_twobyte_table():
 BYTE_TABLE = create_byte_table()
 TWOBYTE_TABLE = create_twobyte_table()
 
-def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size):
+def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size,
+                        more_bytes=None):
     """
     takes in a iterable of longs and converts them to bases in a char array
     returns a ctypes string buffer
@@ -102,14 +103,26 @@ def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size):
     i = 16 - first_base_offset
     if array_size < i: i = array_size
     dna[0:i] = array('c', first_block[first_base_offset:first_base_offset + i])
-    if longs_len == 1: return dna
-    # middle blocks (implicitly skipped if they don't exist)
-    for byte in bytes[4:-4]:
-        dna[i:i + 4] = array('c', BYTE_TABLE[byte])
-        i += 4
-    # last block
-    last_block = array('c', ''.join([''.join(BYTE_TABLE[bytes[x]]) for x in range(-4,0)]))
-    dna[i:i + last_base_offset] = last_block[0:last_base_offset]
+    if longs_len > 1:
+        # middle blocks (implicitly skipped if they don't exist)
+        for byte in bytes[4:-4]:
+            dna[i:i + 4] = array('c', BYTE_TABLE[byte])
+            i += 4
+        # last block
+        last_block = array('c', ''.join([''.join(BYTE_TABLE[bytes[x]]) for x in range(-4,0)]))
+        dna[i:i + last_base_offset] = last_block[0:last_base_offset]
+        i += 16
+    if more_bytes is not None:
+        bytes = array('B')
+        bytes.fromstring(more_bytes)
+        j = i
+        for byte in bytes:
+            j = i + 4
+            if j > array_size:
+                dna[i:array_size] = array('c', BYTE_TABLE[byte])[0:(array_size - i)]
+                break
+            dna[i:i + 4] = array('c', BYTE_TABLE[byte])
+            i += 4
     return dna
 
 class TwoBitFile(dict):
@@ -142,11 +155,13 @@ See TwoBitSequence for more info
         if not access(foo, R_OK):
             raise IOError(EACCES, strerror(EACCES), foo)
         self._filename = foo
+        self._file_size = getsize(foo)
         self._file_handle = open(foo, 'rb')
         self._load_header()
         self._load_index()
         for name, offset in self._offset_dict.iteritems():
             self[name] = TwoBitSequence(self._file_handle, offset,
+                                        self._file_size,
                                         self._byteswapped)
         return        
         
@@ -178,14 +193,13 @@ See TwoBitSequence for more info
         remaining = self._sequence_count
         sequence_offsets = []
         file_handle.seek(16)
-        while True:
-            if remaining == 0: break
+        while remaining > 0:
             name_size = array('B')
             name_size.fromfile(file_handle, 1)
             if byteswapped: name_size.byteswap()
             name = array('c')
-            if byteswapped: name.byteswap()
             name.fromfile(file_handle, name_size[0])
+            if byteswapped: name.byteswap()
             offset = array(LONG)
             offset.fromfile(file_handle, 1)
             if byteswapped: offset.byteswap()
@@ -235,7 +249,8 @@ x = TwoBitFile('my.2bit')
 d = x.dict()
 for k,v in d.iteritems(): d[k] = str(v)
     """
-    def __init__(self, file_handle, offset, byteswapped=False):
+    def __init__(self, file_handle, offset, file_size, byteswapped=False):
+        self._file_size = file_size
         self._file_handle = file_handle
         self._original_offset = offset
         self._byteswapped = byteswapped
@@ -244,8 +259,9 @@ for k,v in d.iteritems(): d[k] = str(v)
         header.fromfile(file_handle, 2)
         if byteswapped: header.byteswap()
         dna_size, n_block_count = header
-        self._dna_size = dna_size
-        self._packed_dna_size = (dna_size + 15) / 16 # this is 32-bit fragments
+        self._dna_size = dna_size # number of characters, 2 bits each
+        self._n_bytes = (dna_size + 3) / 4 # number of bytes
+        self._packed_dna_size = (dna_size + 15) / 16 # number of 32-bit fragments
         n_block_starts = array(LONG)
         n_block_sizes = array(LONG)
         n_block_starts.fromfile(file_handle, n_block_count)
@@ -281,17 +297,17 @@ for k,v in d.iteritems(): d[k] = str(v)
         """
         # handle negative coordinates
         dna_size = self._dna_size
-        if max_ < 0:
+        if max_ is not None and max_ < 0:
             if max_ < -dna_size: raise IndexError('index out of range')
             max_ = dna_size + 1 + max_
         if min_ < 0:
             if max_ < -dna_size: raise IndexError('index out of range')
             min_ = dna_size + 1 + min_
         # make sure there's a proper range
-        if min_ > max_ and max_ is not None: return ''
-        if max_ == 0: return ''
+        if max_ is not None and min_ > max_: return ''
+        if max_ == 0 or max_ == min_: return ''
         # load all the data
-        if max_ > dna_size: max_ = dna_size
+        if max_ is None or max_ > dna_size: max_ = dna_size
         file_handle = self._file_handle
         byteswapped = self._byteswapped
         n_block_starts = self._n_block_starts
@@ -300,35 +316,46 @@ for k,v in d.iteritems(): d[k] = str(v)
         mask_block_sizes = self._mask_block_sizes
         offset = self._offset
         packed_dna_size = self._packed_dna_size
+        n_bytes = self._n_bytes
 
         # region_size is how many bases the region is       
         if max_ is None: region_size = dna_size - min_
         else: region_size = max_ - min_
         
         # start_block, end_block are the first/last 32-bit blocks we need
-        # note: end_block is not read
         # blocks start at 0
         start_block = min_ / 16
-        end_block = max_ / 16
-        # don't read past seq end
-        if end_block >= packed_dna_size: end_block = packed_dna_size - 1
-        # +1 we still need to read block
-        blocks_to_read = end_block - start_block + 1
-        
         # jump directly to desired file location
-        local_offset = offset + start_block * 4
+        local_offset = offset + (start_block * 4)
+        end_block = (max_ - 1 + 16) / 16
+        # don't read past seq end
+        
         file_handle.seek(local_offset)
         
         # note we won't actually read the last base
         # this is a python slice first_base_offset:16*blocks+last_base_offset
         first_base_offset = min_ % 16
         last_base_offset = max_ % 16
+        if last_base_offset == 0: last_base_offset = 16
+        # +1 we still need to read end_block maybe
+        blocks_to_read = end_block - start_block
+        if (blocks_to_read + start_block) > packed_dna_size:
+            blocks_to_read = packed_dna_size - start_block
         
         fourbyte_dna = array(LONG)
-        fourbyte_dna.fromfile(file_handle, blocks_to_read)
+        remainder_seq = None
+        if (blocks_to_read * 4 + local_offset) > self._file_size:
+            fourbyte_dna.fromfile(file_handle, blocks_to_read - 1)
+            morebytes = file_handle.read() # read the remaining characters
+#            if byteswapped:
+#                morebytes = ''.join(reversed(morebytes))
+        else:
+            fourbyte_dna.fromfile(file_handle, blocks_to_read)
+            morebytes = None
         if byteswapped: fourbyte_dna.byteswap()
         string_as_array = longs_to_char_array(fourbyte_dna, first_base_offset,
-                                              last_base_offset, region_size)
+                                              last_base_offset, region_size,
+                                              more_bytes=morebytes)
         for start, size in izip(n_block_starts, n_block_sizes):
             end = start + size
             if end <= min_: continue
@@ -337,6 +364,7 @@ for k,v in d.iteritems(): d[k] = str(v)
             if end > max_: end = max_ 
             start -= min_
             end -= min_
+            # this should actually be decoded, 00=N, 01=n
             string_as_array[start:end] = array('c', 'N'*(end-start))
         lower = str.lower
         first_masked_region = max(0,
@@ -355,7 +383,7 @@ for k,v in d.iteritems(): d[k] = str(v)
             end -= min_
             string_as_array[start:end] = array('c', lower(string_as_array[start:end].tostring()))
         if not len(string_as_array) == max_ - min_:
-            raise RuntimeError, "Sequence was longer than it should be"
+            raise RuntimeError, "Sequence was the wrong size"
         return string_as_array.tostring()
 
     def __str__(self):
