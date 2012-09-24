@@ -511,6 +511,7 @@ def twobit_reader(twobit_file, input_stream=None, write=None):
     Non-regions will be skipped and warnings will be issued to logging
     (logging output to stderr by default)
     """
+    warning_msg = 'Invalid %s at line %d\n\t"%s"'
     if input_stream is None: return
     for i, line in enumerate((line.rstrip('\n\r') for line in input_stream)):
         fields = line.split()
