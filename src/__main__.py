@@ -1,2 +1,2 @@
-from twobitreader import *
+from twobitreader import cmdline_reader
 cmdline_reader()
