@@ -109,37 +109,55 @@ TWOBYTE_TABLE = create_twobyte_table()
 def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size,
                         more_bytes=None):
     """
-    takes in a iterable of longs and converts them to bases in a char array
-    returns a ctypes string buffer
+    takes in an array of longs (4 bytes) and converts them to bases in
+    a char array
+    you must also provide the offset in the first and last block
+    (note these offsets are pythonic. last_offset is not included)
+    and the desired array_size
+    If you have less than a long worth of bases at the end, you can provide
+    them as a string with more_bytes=
+    returns the correct subset of the array based on provided offsets
     """
+    if array_size == 0:
+        return array('c')
+    elif array_size < 0:
+        raise ValueError('array_size must be at least 0')
+
+    if not first_base_offset in range(16):
+        raise ValueError('first_base_offset must be in range(16)')
+    if not last_base_offset in range(1, 17):
+        raise ValueError('last_base_offset must be in range(1, 17)')
+
     longs_len = len(longs)
-    # dna = ctypes.create_string_buffer(array_size)
+    if array_size > longs_len * 16:
+        raise ValueError('array_size exceeds maximum possible for input')
+
     dna = array('c', 'N' * longs_len)
     # translate from 32-bit blocks to bytes
     # this method ensures correct endianess (byteswap as neeed)
-    bytes = array('B')
-    bytes.fromstring(longs.tostring())
+    bytes_ = array('B')
+    bytes_.fromstring(longs.tostring())
     # first block
-    first_block = ''.join([''.join(BYTE_TABLE[bytes[x]]) for x in range(4)])
+    first_block = ''.join([''.join(BYTE_TABLE[bytes_[x]]) for x in range(4)])
     i = 16 - first_base_offset
     if array_size < i:
         i = array_size
     dna[0:i] = array('c', first_block[first_base_offset:first_base_offset + i])
     if longs_len > 1:
         # middle blocks (implicitly skipped if they don't exist)
-        for byte in bytes[4:-4]:
+        for byte in bytes_[4:-4]:
             dna[i:i + 4] = array('c', BYTE_TABLE[byte])
             i += 4
         # last block
-        last_block = array('c', ''.join([''.join(BYTE_TABLE[bytes[x]])
+        last_block = array('c', ''.join([''.join(BYTE_TABLE[bytes_[x]])
                                          for x in range(-4, 0)]))
         dna[i:i + last_base_offset] = last_block[0:last_base_offset]
         i += 16
     if more_bytes is not None:
-        bytes = array('B')
-        bytes.fromstring(more_bytes)
+        bytes_ = array('B')
+        bytes_.fromstring(more_bytes)
         j = i
-        for byte in bytes:
+        for byte in bytes_:
             j = i + 4
             if j > array_size:
                 dnabytes = array('c', BYTE_TABLE[byte])[0:(array_size - i)]
@@ -147,7 +165,7 @@ def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size,
                 break
             dna[i:i + 4] = array('c', BYTE_TABLE[byte])
             i += 4
-    return dna
+    return dna[0:array_size]
 
 
 class TwoBitFile(dict):
