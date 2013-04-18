@@ -108,6 +108,7 @@ TWOBYTE_TABLE = create_twobyte_table()
 
 def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size,
                         more_bytes=None):
+    if more_bytes is not None: print array('B', more_bytes)
     """
     takes in an array of longs (4 bytes) and converts them to bases in
     a char array
@@ -116,6 +117,9 @@ def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size,
     and the desired array_size
     If you have less than a long worth of bases at the end, you can provide
     them as a string with more_bytes=
+    
+    NOTE: last_base_offset is inside more_bytes not the last long, if more_bytes
+          is not None
     returns the correct subset of the array based on provided offsets
     """
     if array_size == 0:
@@ -129,10 +133,14 @@ def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size,
         raise ValueError('last_base_offset must be in range(1, 17)')
 
     longs_len = len(longs)
-    if array_size > longs_len * 16:
+    if more_bytes is None:
+        shorts_length = 0
+    else:
+        shorts_length = len(more_bytes)
+    if array_size > longs_len * 16 + 4 * shorts_length:
         raise ValueError('array_size exceeds maximum possible for input')
 
-    dna = array('c', 'N' * longs_len)
+    dna = array('c', 'N' * (longs_len * 16 + 4 * shorts_length))
     # translate from 32-bit blocks to bytes
     # this method ensures correct endianess (byteswap as neeed)
     bytes_ = array('B')
@@ -151,7 +159,10 @@ def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size,
         # last block
         last_block = array('c', ''.join([''.join(BYTE_TABLE[bytes_[x]])
                                          for x in range(-4, 0)]))
-        dna[i:i + last_base_offset] = last_block[0:last_base_offset]
+        if more_bytes is None:
+            dna[i:i + last_base_offset] = last_block[0:last_base_offset]
+        else: # if there are more bytes, we need the whole last block
+            dna[i:i + 16] = last_block[0:16]
         i += 16
     if more_bytes is not None:
         bytes_ = array('B')
@@ -163,7 +174,7 @@ def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size,
                 dnabytes = array('c', BYTE_TABLE[byte])[0:(array_size - i)]
                 dna[i:array_size] = dnabytes
                 break
-            dna[i:i + 4] = array('c', BYTE_TABLE[byte])
+            dna[i:i + last_base_offset] = array('c', BYTE_TABLE[byte])
             i += 4
     return dna[0:array_size]
 

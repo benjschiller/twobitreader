@@ -38,6 +38,7 @@ def main():
         #py_modules = ['twobitreader'],
         packages=['twobitreader'],
         package_dir={'twobitreader': 'src'},
+        package_data={'twobitreader': ['src/test/test.2bit']},
         #package_dir = {'': 'src'},
         url='http://bitbucket.org/thesylex/twobitreader',
         cmdclass=cmdclass,
