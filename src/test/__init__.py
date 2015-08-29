@@ -171,3 +171,15 @@ class CheckTestTwoBitFileTest(unittest.TestCase):
         chr10 = str(t['chr10'])
         self.assertEqual(chr10,
                          'gaaagggaactccctgaccccttgtgaaagggaactccctgaccccttgt')
+
+    def test_twobitsequence_getitem(self):
+        t = twobitreader.TwoBitFile(self.filename)
+        slices = [(0,10,'gaaagggaact'),
+                  (5,10,'gaact'),
+                  (5,None,'aactccctgaccccttgtgaaagggaactccctgaccccttgt'),
+                  (None,None,'gaaagggaactccctgaccccttgtgaaagggaactccctgaccccttgt')]
+        for start, end, expected in slices:
+            slice_ = slice(start,end)
+            found = t["chr10"].__getitem__(slice_)
+            self.assertEqual(found,expected,"__getitem__ failed on slice(%s,%s). Expected %s, got %s" % (satrt,end,expected,found))
+

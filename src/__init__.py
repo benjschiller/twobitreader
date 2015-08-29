@@ -358,6 +358,13 @@ for k,v in d.iteritems(): d[k] = str(v)
     def __getslice__(self, min_, max_=None):
         return self.get_slice(min_, max_)
 
+    def __getitem__(self,slice_):
+        """
+        return a sub-sequence, given a slice object
+        """
+        return self.get_slice(min=slice_.start,max=slice_.end)
+
+
     def get_slice(self, min_, max_=None):
         """
         get_slice returns only a sub-sequence
