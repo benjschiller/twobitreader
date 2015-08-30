@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 downloads a .2bit genome from UCSC
 .. note:: please comply with the restrictions of use at
@@ -7,7 +8,12 @@ and do not over-use this module
 
 By default, genomes are saved to the current directory
 """
-from urllib2 import urlopen
+import sys
+if sys.version_info > (3,):
+    from urllib.request import urlopen
+else:
+    from urllib2 import urlopen
+
 from shutil import copyfileobj
 from os.path import exists, join
 from os import getcwd
