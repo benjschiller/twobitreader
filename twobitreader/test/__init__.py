@@ -2,6 +2,7 @@
 import unittest
 import twobitreader
 import os
+import sys
 
 
 class HasLongTypeTestCase(unittest.TestCase):
@@ -53,7 +54,7 @@ class SimpleLongsToCharTest(unittest.TestCase):
                                                      3797081033, 1243780212])
         self.as_string = \
          'TCTACCTAAGCGTAATGTTCCTCGCGTGGTAAGTACGCAGCCTAGATACGCTACCTTATACTAA'
-        self.chars_array = array('c',
+        self.chars_array = array(twobitreader._CHAR_CODE,
             'TCTACCTAAGCGTAATGTTCCTCGCGTGGTAAGTACGCAGCCTAGATACGCTACCTTATACTAA')
     
     def test_longs_to_char(self):
@@ -62,8 +63,8 @@ class SimpleLongsToCharTest(unittest.TestCase):
                          self.chars_array)
         
     def test_longs_to_string(self):
-        as_string = twobitreader.longs_to_char_array(self.longs_array,
-                                                     0, 16, 64).tostring()
+        as_string = twobitreader.safe_tostring(twobitreader.longs_to_char_array(self.longs_array,
+                                                                                0, 16, 64))
         self.assertEqual(as_string, self.as_string)
         
     def test_string_length(self):
@@ -174,12 +175,19 @@ class CheckTestTwoBitFileTest(unittest.TestCase):
 
     def test_twobitsequence_getitem(self):
         t = twobitreader.TwoBitFile(self.filename)
-        slices = [(0,10,'gaaagggaact'),
-                  (5,10,'gaact'),
-                  (5,None,'aactccctgaccccttgtgaaagggaactccctgaccccttgt'),
-                  (None,None,'gaaagggaactccctgaccccttgtgaaagggaactccctgaccccttgt')]
+        slices = [(0,10,'gaaagggaac'),
+                  (5,10,'ggaac'),
+                  (5,None,'ggaactccctgaccccttgtgaaagggaactccctgaccccttgt'),
+                  (None,None,'gaaagggaactccctgaccccttgtgaaagggaactccctgaccccttgt')
+                  ]
         for start, end, expected in slices:
             slice_ = slice(start,end)
             found = t["chr10"].__getitem__(slice_)
-            self.assertEqual(found,expected,"__getitem__ failed on slice(%s,%s). Expected %s, got %s" % (satrt,end,expected,found))
+            self.assertEqual(found,expected,"__getitem__ failed on slice(%s,%s). Expected %s, got %s" % (start,end,expected,found))
+
+            found = t["chr10"][start:end]
+            self.assertEqual(found,expected,"__getitem__ failed on [%s:%s]. Expected %s, got %s" % (start,end,expected,found))
+
+
+
 

@@ -13,10 +13,27 @@ try:
 except ImportError:
     strerror = lambda x: 'strerror not supported'
 from os.path import exists, getsize
-from itertools import izip
 import logging
 import textwrap
 import sys
+
+if sys.version_info > (3,):
+    izip = zip
+    xrange = range
+    _CHAR_CODE = 'u'
+else:
+    from itertools import izip
+    _CHAR_CODE = 'c'
+
+
+def safe_tostring(ary):
+    """
+    convert arrays to strings in a Python 2.x / 3.x safe way
+    """
+    if sys.version_info > (3,):
+        return ary.tounicode().encode("ascii").decode()
+    else:
+        return ary.tostring()
 
 
 def true_long_type():
@@ -42,7 +59,7 @@ def byte_to_bases(x):
     cf = c & 0x3
     fc = (f >> 2) & 0x3
     ff = f & 0x3
-    return map(bits_to_base, (cc, cf, fc, ff))
+    return [bits_to_base(X) for X in (cc,cf,fc,ff)]
 
 
 def bits_to_base(x):
@@ -99,7 +116,7 @@ def create_twobyte_table():
     d = {}
     for x in xrange(2**16):
         c, f = split16(x)
-        d[x] = byte_to_bases(c) + byte_to_bases(f)
+        d[x] = list(byte_to_bases(c)) + list(byte_to_bases(f))
     return d
 
 BYTE_TABLE = create_byte_table()
@@ -108,7 +125,7 @@ TWOBYTE_TABLE = create_twobyte_table()
 
 def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size,
                         more_bytes=None):
-    if more_bytes is not None: print array('B', more_bytes)
+    if more_bytes is not None: print(array('B', more_bytes))
     """
     takes in an array of longs (4 bytes) and converts them to bases in
     a char array
@@ -123,7 +140,7 @@ def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size,
     returns the correct subset of the array based on provided offsets
     """
     if array_size == 0:
-        return array('c')
+        return array(_CHAR_CODE)
     elif array_size < 0:
         raise ValueError('array_size must be at least 0')
 
@@ -140,7 +157,7 @@ def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size,
     if array_size > longs_len * 16 + 4 * shorts_length:
         raise ValueError('array_size exceeds maximum possible for input')
 
-    dna = array('c', 'N' * (longs_len * 16 + 4 * shorts_length))
+    dna = array(_CHAR_CODE, 'N' * (longs_len * 16 + 4 * shorts_length))
     # translate from 32-bit blocks to bytes
     # this method ensures correct endianess (byteswap as neeed)
     bytes_ = array('B')
@@ -150,14 +167,14 @@ def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size,
     i = 16 - first_base_offset
     if array_size < i:
         i = array_size
-    dna[0:i] = array('c', first_block[first_base_offset:first_base_offset + i])
+    dna[0:i] = array(_CHAR_CODE, first_block[first_base_offset:first_base_offset + i])
     if longs_len > 1:
         # middle blocks (implicitly skipped if they don't exist)
         for byte in bytes_[4:-4]:
-            dna[i:i + 4] = array('c', BYTE_TABLE[byte])
+            dna[i:i + 4] = array(_CHAR_CODE, BYTE_TABLE[byte])
             i += 4
         # last block
-        last_block = array('c', ''.join([''.join(BYTE_TABLE[bytes_[x]])
+        last_block = array(_CHAR_CODE, ''.join([''.join(BYTE_TABLE[bytes_[x]])
                                          for x in range(-4, 0)]))
         if more_bytes is None:
             dna[i:i + last_base_offset] = last_block[0:last_base_offset]
@@ -171,10 +188,10 @@ def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size,
         for byte in bytes_:
             j = i + 4
             if j > array_size:
-                dnabytes = array('c', BYTE_TABLE[byte])[0:(array_size - i)]
+                dnabytes = array(_CHAR_CODE, BYTE_TABLE[byte])[0:(array_size - i)]
                 dna[i:array_size] = dnabytes
                 break
-            dna[i:i + last_base_offset] = array('c', BYTE_TABLE[byte])
+            dna[i:i + last_base_offset] = array(_CHAR_CODE, BYTE_TABLE[byte])
             i += 4
     return dna[0:array_size]
 
@@ -213,7 +230,7 @@ See TwoBitSequence for more info
         self._file_handle = open(foo, 'rb')
         self._load_header()
         self._load_index()
-        for name, offset in self._offset_dict.iteritems():
+        for name, offset in self._offset_dict.items():
             self[name] = TwoBitSequence(self._file_handle, offset,
                                         self._file_size,
                                         self._byteswapped)
@@ -253,15 +270,20 @@ See TwoBitSequence for more info
             name_size.fromfile(file_handle, 1)
             if byteswapped:
                 name_size.byteswap()
-            name = array('c')
+            #name = array(_CHAR_CODE)
+            name = array('B')
             name.fromfile(file_handle, name_size[0])
+            #name = safe_tostring(name)
+            name = "".join([chr(X) for X in name])
+
             if byteswapped:
                 name.byteswap()
             offset = array(LONG)
             offset.fromfile(file_handle, 1)
             if byteswapped:
                 offset.byteswap()
-            sequence_offsets.append((name.tostring(), offset[0]))
+            #sequence_offsets.append((name.tostring(), offset[0]))
+            sequence_offsets.append((name, offset[0]))
             remaining -= 1
         self._sequence_offsets = sequence_offsets
         self._offset_dict = dict(sequence_offsets)
@@ -271,7 +293,7 @@ See TwoBitSequence for more info
         d = {}
         file_handle = self._file_handle
         byteswapped = self._byteswapped
-        for name, offset in self._offset_dict.iteritems():
+        for name, offset in self._offset_dict.items():
             file_handle.seek(offset)
             dna_size = array(LONG)
             dna_size.fromfile(file_handle, 1)
@@ -307,7 +329,7 @@ but if you want to string-ize your TwoBitFile, here's a recipe:
 
 x = TwoBitFile('my.2bit')
 d = x.dict()
-for k,v in d.iteritems(): d[k] = str(v)
+for k,v in d.items(): d[k] = str(v)
     """
     def __init__(self, file_handle, offset, file_size, byteswapped=False):
         self._file_size = file_size
@@ -362,7 +384,7 @@ for k,v in d.iteritems(): d[k] = str(v)
         """
         return a sub-sequence, given a slice object
         """
-        return self.get_slice(min=slice_.start,max=slice_.end)
+        return self.get_slice(min_=slice_.start,max_=slice_.stop)
 
 
     def get_slice(self, min_, max_=None):
@@ -371,6 +393,8 @@ for k,v in d.iteritems(): d[k] = str(v)
         """
         # handle negative coordinates
         dna_size = self._dna_size
+        if min_ is None: # for slicing e.g. [:]
+            min_ = 0
         if max_ is not None and max_ < 0:
             if max_ < -dna_size:
                 raise IndexError('index out of range')
@@ -405,10 +429,10 @@ for k,v in d.iteritems(): d[k] = str(v)
 
         # start_block, end_block are the first/last 32-bit blocks we need
         # blocks start at 0
-        start_block = min_ / 16
+        start_block = min_ // 16
         # jump directly to desired file location
         local_offset = offset + (start_block * 4)
-        end_block = (max_ - 1 + 16) / 16
+        end_block = (max_ - 1 + 16) // 16
         # don't read past seq end
 
         file_handle.seek(local_offset)
@@ -452,7 +476,7 @@ for k,v in d.iteritems(): d[k] = str(v)
             start -= min_
             end -= min_
             # this should actually be decoded, 00=N, 01=n
-            str_as_array[start:end] = array('c', 'N'*(end-start))
+            str_as_array[start:end] = array(_CHAR_CODE, 'N'*(end-start))
         lower = str.lower
         first_masked_region = max(0,
                                   bisect_right(mask_block_starts, min_) - 1)
@@ -474,12 +498,11 @@ for k,v in d.iteritems(): d[k] = str(v)
                 end = max_
             start -= min_
             end -= min_
-            str_as_array[start:end] = array('c',
-                                            lower(str_as_array[start:end].
-                                            tostring()))
+            str_as_array[start:end] = array(_CHAR_CODE,
+                                            lower(safe_tostring(str_as_array[start:end])))
         if not len(str_as_array) == max_ - min_:
             raise RuntimeError("Sequence was the wrong size")
-        return str_as_array.tostring()
+        return safe_tostring(str_as_array)
 
     def __str__(self):
         """
@@ -488,7 +511,7 @@ for k,v in d.iteritems(): d[k] = str(v)
         return self.__getslice__(0, None)
 
 
-class TwoBitFileError(StandardError):
+class TwoBitFileError(Exception):
     """
     Base exception for TwoBit module
     """
@@ -573,14 +596,14 @@ def cmdline_reader():
     # if no argument provided, print docstring
     argv = sys.argv
     if len(argv) == 1:
-        print argv[0] + ":"
-        print cmdline_reader.__doc__
+        print(argv[0] + ":")
+        print(cmdline_reader.__doc__)
         sys.exit()
         return
     # if user is trying to get help, print docstring
     elif len(argv) == 2 and argv[1] in ['--help', '-h', '-help']:
-        print argv[0] + ":"
-        print cmdline_reader.__doc__
+        print(argv[0] + ":")
+        print(cmdline_reader.__doc__)
         sys.exit()
         return
     # if user specified multiple files, exit with error
@@ -646,8 +669,8 @@ def twobit_reader(twobit_file, input_stream=None, write=None):
             write(">%s:%d-%d" % (chrom, start, end))
             write(textwrap.fill(seq, 60))
         else:
-            print ">%s:%d-%d" % (chrom, start, end)
-            print textwrap.fill(seq, 60)
+            print(">%s:%d-%d" % (chrom, start, end))
+            print(textwrap.fill(seq, 60))
     return
 
 if __name__ == '__main__':
