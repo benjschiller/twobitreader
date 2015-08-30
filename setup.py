@@ -8,9 +8,9 @@ No warranty is provided, express or implied
 """
 import platform
 if platform.system() == 'Java':
-    print 'Warning: not sure if this library is jython-safe'
+    print('Warning: not sure if this library is jython-safe')
 
-from distutils.core import setup
+from setuptools import setup
 cmdclass = {}
 try:
     from sphinx.setup_command import BuildDoc
@@ -60,6 +60,7 @@ def main():
             'Programming Language :: Python :: 2.5',
             'Programming Language :: Python :: 2.6',
             'Programming Language :: Python :: 2.7',
+            'Programming Language :: Python :: 3',
             'Topic :: Scientific/Engineering :: Bio-Informatics'
         ]
     )
