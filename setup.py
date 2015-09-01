@@ -41,7 +41,7 @@ def main():
         author_email='ben dot j dot schiller at gmail',
         packages=['twobitreader'],
         package_data={'twobitreader': ['tests/test.2bit']},
-        url='http://bitbucket.org/benjschiller/twobitreader',
+        url='https://github.com/benjschiller/twobitreader',
         cmdclass=cmdclass,
         command_options={
             'project': ('setup.py', name),
