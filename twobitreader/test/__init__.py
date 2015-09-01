@@ -186,7 +186,6 @@ class CheckTestTwoBitFileTest(unittest.TestCase):
             msg = "__getitem__[%s] failed. Expected %s, got %s" % (key,expected,found)
             self.assertEqual(found,expected,msg)
 
-
     def test_twobitsequence_getitem_slice(self):
         t = twobitreader.TwoBitFile(self.filename)
         slices = [(0,10,'gaaagggaac'),
@@ -196,13 +195,11 @@ class CheckTestTwoBitFileTest(unittest.TestCase):
                   (-10,-5,'gaccc'),
                   (-5,None,'cttgt'),
                   ]
-        for start, end, expected in slices:
-            slice_ = slice(start,end)
-            found = t["chr10"].__getitem__(slice_)
-            self.assertEqual(found,expected,"__getitem__ failed on slice(%s,%s). Expected %s, got %s" % (start,end,expected,found))
 
+        for start, end, expected in slices:
             found = t["chr10"][start:end]
             self.assertEqual(found,expected,"__getitem__ failed on [%s:%s]. Expected %s, got %s" % (start,end,expected,found))
+
 
 
 

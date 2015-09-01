@@ -381,13 +381,20 @@ for k,v in d.items(): d[k] = str(v)
         """
         return a sub-sequence, given a slice object
         """
+        step = None
         if isinstance(slice_or_key,slice):
-            return self.get_slice(min_=slice_or_key.start,max_=slice_or_key.stop)
+            stmp = self.get_slice(min_=slice_or_key.start,max_=slice_or_key.stop)
+            step = slice_or_key.step
         elif isinstance(slice_or_key,int):
             max_ = slice_or_key +1
             if max_ == 0:
                 max_ = None
-            return self.get_slice(min_=slice_or_key,max_=max_)
+            stmp = self.get_slice(min_=slice_or_key,max_=max_)
+
+        if step is not None:
+            raise ValueError("Slicing by step not currently supported")
+        else:
+            return stmp
 
     def get_slice(self, min_, max_=None):
         """
