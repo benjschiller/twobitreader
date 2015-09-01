@@ -21,9 +21,11 @@ if sys.version_info > (3,):
     izip = zip
     xrange = range
     _CHAR_CODE = 'u'
+    iteritems = dict.items
 else:
     from itertools import izip
     _CHAR_CODE = 'c'
+    iteritems = dict.iteritems
 
 
 def safe_tostring(ary):
@@ -31,7 +33,7 @@ def safe_tostring(ary):
     convert arrays to strings in a Python 2.x / 3.x safe way
     """
     if sys.version_info > (3,):
-        return ary.tounicode().encode("ascii").decode()
+        return ary.tounicode().encode("ascii").decode() 
     else:
         return ary.tostring()
 
@@ -230,7 +232,7 @@ See TwoBitSequence for more info
         self._file_handle = open(foo, 'rb')
         self._load_header()
         self._load_index()
-        for name, offset in self._offset_dict.items():
+        for name, offset in iteritems(self._offset_dict):
             self[name] = TwoBitSequence(self._file_handle, offset,
                                         self._file_size,
                                         self._byteswapped)
@@ -273,7 +275,6 @@ See TwoBitSequence for more info
             #name = array(_CHAR_CODE)
             name = array('B')
             name.fromfile(file_handle, name_size[0])
-            #name = safe_tostring(name)
             name = "".join([chr(X) for X in name])
 
             if byteswapped:
@@ -282,7 +283,6 @@ See TwoBitSequence for more info
             offset.fromfile(file_handle, 1)
             if byteswapped:
                 offset.byteswap()
-            #sequence_offsets.append((name.tostring(), offset[0]))
             sequence_offsets.append((name, offset[0]))
             remaining -= 1
         self._sequence_offsets = sequence_offsets
@@ -293,7 +293,7 @@ See TwoBitSequence for more info
         d = {}
         file_handle = self._file_handle
         byteswapped = self._byteswapped
-        for name, offset in self._offset_dict.items():
+        for name, offset in iteritems(self._offset_dict):
             file_handle.seek(offset)
             dna_size = array(LONG)
             dna_size.fromfile(file_handle, 1)
@@ -377,15 +377,17 @@ for k,v in d.items(): d[k] = str(v)
     def __len__(self):
         return self._dna_size
 
-    def __getslice__(self, min_, max_=None):
-        return self.get_slice(min_, max_)
-
-    def __getitem__(self,slice_):
+    def __getitem__(self,slice_or_key):
         """
         return a sub-sequence, given a slice object
         """
-        return self.get_slice(min_=slice_.start,max_=slice_.stop)
-
+        if isinstance(slice_or_key,slice):
+            return self.get_slice(min_=slice_or_key.start,max_=slice_or_key.stop)
+        elif isinstance(slice_or_key,int):
+            max_ = slice_or_key +1
+            if max_ == 0:
+                max_ = None
+            return self.get_slice(min_=slice_or_key,max_=max_)
 
     def get_slice(self, min_, max_=None):
         """
@@ -398,19 +400,21 @@ for k,v in d.items(): d[k] = str(v)
         if max_ is not None and max_ < 0:
             if max_ < -dna_size:
                 raise IndexError('index out of range')
-            max_ = dna_size + 1 + max_
-        if min_ < 0:
-            if max_ < -dna_size:
+            max_ = dna_size + max_
+        if min_ is not None and min_ < 0:
+            if min_ < -dna_size:
                 raise IndexError('index out of range')
-            min_ = dna_size + 1 + min_
+            min_ = dna_size + min_
         # make sure there's a proper range
         if max_ is not None and min_ > max_:
             return ''
         if max_ == 0 or max_ == min_:
             return ''
+
         # load all the data
         if max_ is None or max_ > dna_size:
             max_ = dna_size
+
         file_handle = self._file_handle
         byteswapped = self._byteswapped
         n_block_starts = self._n_block_starts
@@ -508,7 +512,7 @@ for k,v in d.items(): d[k] = str(v)
         """
         returns the entire chromosome
         """
-        return self.__getslice__(0, None)
+        return self.get_slice(0, None)
 
 
 class TwoBitFileError(Exception):

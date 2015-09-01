@@ -4,10 +4,9 @@ import twobitreader
 import os
 import sys
 
-
 class HasLongTypeTestCase(unittest.TestCase):
     def test_has_long_type(self):
-        self.assertIn(twobitreader.true_long_type(), ['L', 'I'])
+        self.assertTrue(twobitreader.true_long_type() in ['L', 'I'])
 
         
 class ByteTableTestCase(unittest.TestCase):
@@ -136,12 +135,14 @@ class CheckTestTwoBitFileTest(unittest.TestCase):
         self.filename = os.path.join(this_dir, 'test.2bit')
         
     def test_testfile_can_be_opened(self):
-        with open(self.filename) as f:
-            pass
+        #with open(self.filename) as f:
+        #    pass
+        f = open(self.filename)
+        f.close()
         
     def test_open_twobit_file_and_delete_object(self):
         t = twobitreader.TwoBitFile(self.filename)
-        self.assertIsInstance(t, twobitreader.TwoBitFile)
+        self.assertTrue(isinstance(t, twobitreader.TwoBitFile))
         del t
         
     def test_twobit_file_has_chrs(self):
@@ -154,7 +155,7 @@ class CheckTestTwoBitFileTest(unittest.TestCase):
         """make sure file has chr1 - chr10"""
         t = twobitreader.TwoBitFile(self.filename)
         for sequence in t.values():
-            self.assertIsInstance(sequence, twobitreader.TwoBitSequence)
+            self.assertTrue(isinstance(sequence, twobitreader.TwoBitSequence))
     
     def test_twobit_sequence_lengths(self):
         t = twobitreader.TwoBitFile(self.filename)
@@ -173,12 +174,27 @@ class CheckTestTwoBitFileTest(unittest.TestCase):
         self.assertEqual(chr10,
                          'gaaagggaactccctgaccccttgtgaaagggaactccctgaccccttgt')
 
-    def test_twobitsequence_getitem(self):
+    def test_twobitsequence_getitem_key(self):
+        t = twobitreader.TwoBitFile(self.filename)
+        keys = [(0,'g'),
+                (10,'t'),
+                (-10,'g'),
+                 (-1,'t'),
+               ]
+        for key, expected in keys:
+            found = t["chr10"].__getitem__(key)
+            msg = "__getitem__[%s] failed. Expected %s, got %s" % (key,expected,found)
+            self.assertEqual(found,expected,msg)
+
+
+    def test_twobitsequence_getitem_slice(self):
         t = twobitreader.TwoBitFile(self.filename)
         slices = [(0,10,'gaaagggaac'),
                   (5,10,'ggaac'),
                   (5,None,'ggaactccctgaccccttgtgaaagggaactccctgaccccttgt'),
-                  (None,None,'gaaagggaactccctgaccccttgtgaaagggaactccctgaccccttgt')
+                  (None,None,'gaaagggaactccctgaccccttgtgaaagggaactccctgaccccttgt'),
+                  (-10,-5,'gaccc'),
+                  (-5,None,'cttgt'),
                   ]
         for start, end, expected in slices:
             slice_ = slice(start,end)
