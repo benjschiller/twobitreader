@@ -36,8 +36,7 @@ def main():
         author='Benjamin Schiller',
         author_email='benjamin.schiller@ucsf.edu',
         packages=['twobitreader'],
-        package_dir={'twobitreader': 'twobitreader'},
-        package_data={'twobitreader': ['twobitreader/test/test.2bit']},
+        package_data={'twobitreader': ['tests/test.2bit']},
         url='http://bitbucket.org/benjschiller/twobitreader',
         cmdclass=cmdclass,
         command_options={
