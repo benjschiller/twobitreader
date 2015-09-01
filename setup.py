@@ -35,12 +35,10 @@ def main():
 (used by the UCSC genome browser)',
         author='Benjamin Schiller',
         author_email='benjamin.schiller@ucsf.edu',
-        #py_modules = ['twobitreader'],
         packages=['twobitreader'],
         package_dir={'twobitreader': 'twobitreader'},
         package_data={'twobitreader': ['twobitreader/test/test.2bit']},
-        #package_dir = {'': 'src'},
-        url='http://bitbucket.org/thesylex/twobitreader',
+        url='http://bitbucket.org/benjschiller/twobitreader',
         cmdclass=cmdclass,
         command_options={
             'project': ('setup.py', name),
