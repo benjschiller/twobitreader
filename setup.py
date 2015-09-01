@@ -7,24 +7,28 @@ Licensed under Perl Artistic License 2.0
 No warranty is provided, express or implied
 """
 import platform
+
 if platform.system() == 'Java':
     print('Warning: not sure if this library is jython-safe')
 
 from setuptools import setup
+
 cmdclass = {}
 try:
     from sphinx.setup_command import BuildDoc
+
     cmdclass['build_sphinx'] = BuildDoc
 except ImportError:
     pass
 try:
     from sphinx_pypi_upload import UploadDoc
+
     cmdclass['upload_sphinx'] = UploadDoc
 except ImportError:
     pass
 
 name = 'twobitreader'
-version = "2.9"
+version = "3.0.0"
 
 
 def main():
@@ -34,7 +38,7 @@ def main():
         description='A fast python package for reading .2bit files \
 (used by the UCSC genome browser)',
         author='Benjamin Schiller',
-        author_email='benjamin.schiller@ucsf.edu',
+        author_email='ben dot j dot schiller at gmail',
         packages=['twobitreader'],
         package_data={'twobitreader': ['tests/test.2bit']},
         url='http://bitbucket.org/benjschiller/twobitreader',
@@ -61,6 +65,7 @@ def main():
             'Topic :: Scientific/Engineering :: Bio-Informatics'
         ]
     )
+
 
 if __name__ == '__main__':
     main()

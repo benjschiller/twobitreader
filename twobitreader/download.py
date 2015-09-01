@@ -9,6 +9,7 @@ and do not over-use this module
 By default, genomes are saved to the current directory
 """
 import sys
+
 if sys.version_info > (3,):
     from urllib.request import urlopen
 else:
@@ -43,6 +44,7 @@ def main():
         sys.exit('Example: python -m twobitreader.download hg19')
     else:
         save_genome(sys.argv[1])
+
 
 if __name__ == '__main__':
     main()

@@ -8,6 +8,7 @@ from array import array
 from bisect import bisect_right
 from errno import ENOENT, EACCES
 from os import R_OK, access
+
 try:
     from os import strerror
 except ImportError:
@@ -24,6 +25,7 @@ if sys.version_info > (3,):
     iteritems = dict.items
 else:
     from itertools import izip
+
     _CHAR_CODE = 'c'
     iteritems = dict.iteritems
 
@@ -33,7 +35,7 @@ def safe_tostring(ary):
     convert arrays to strings in a Python 2.x / 3.x safe way
     """
     if sys.version_info > (3,):
-        return ary.tounicode().encode("ascii").decode() 
+        return ary.tounicode().encode("ascii").decode()
     else:
         return ary.tostring()
 
@@ -50,6 +52,8 @@ def true_long_type():
             return type_
     raise ImportError("Couldn't determine a valid 4-byte long type to use \
 as equivalent to LONG")
+
+
 LONG = true_long_type()
 
 
@@ -61,7 +65,7 @@ def byte_to_bases(x):
     cf = c & 0x3
     fc = (f >> 2) & 0x3
     ff = f & 0x3
-    return [bits_to_base(X) for X in (cc,cf,fc,ff)]
+    return [bits_to_base(X) for X in (cc, cf, fc, ff)]
 
 
 def bits_to_base(x):
@@ -98,7 +102,7 @@ def base_to_bin(x):
 def create_byte_table():
     """create BYTE_TABLE"""
     d = {}
-    for x in xrange(2**8):
+    for x in xrange(2 ** 8):
         d[x] = byte_to_bases(x)
     return d
 
@@ -116,10 +120,11 @@ def split16(x):
 def create_twobyte_table():
     """create TWOBYTE_TABLE"""
     d = {}
-    for x in xrange(2**16):
+    for x in xrange(2 ** 16):
         c, f = split16(x)
         d[x] = list(byte_to_bases(c)) + list(byte_to_bases(f))
     return d
+
 
 BYTE_TABLE = create_byte_table()
 TWOBYTE_TABLE = create_twobyte_table()
@@ -177,10 +182,10 @@ def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size,
             i += 4
         # last block
         last_block = array(_CHAR_CODE, ''.join([''.join(BYTE_TABLE[bytes_[x]])
-                                         for x in range(-4, 0)]))
+                                                for x in range(-4, 0)]))
         if more_bytes is None:
             dna[i:i + last_base_offset] = last_block[0:last_base_offset]
-        else: # if there are more bytes, we need the whole last block
+        else:  # if there are more bytes, we need the whole last block
             dna[i:i + 16] = last_block[0:16]
         i += 16
     if more_bytes is not None:
@@ -272,7 +277,7 @@ See TwoBitSequence for more info
             name_size.fromfile(file_handle, 1)
             if byteswapped:
                 name_size.byteswap()
-            #name = array(_CHAR_CODE)
+            # name = array(_CHAR_CODE)
             name = array('B')
             name.fromfile(file_handle, name_size[0])
             name = "".join([chr(X) for X in name])
@@ -331,6 +336,7 @@ x = TwoBitFile('my.2bit')
 d = x.dict()
 for k,v in d.items(): d[k] = str(v)
     """
+
     def __init__(self, file_handle, offset, file_size, byteswapped=False):
         self._file_size = file_size
         self._file_handle = file_handle
@@ -377,22 +383,22 @@ for k,v in d.items(): d[k] = str(v)
     def __len__(self):
         return self._dna_size
 
-    def __getitem__(self,slice_or_key):
+    def __getitem__(self, slice_or_key):
         """
         return a sub-sequence, given a slice object
         """
         step = None
-        if isinstance(slice_or_key,slice):
+        if isinstance(slice_or_key, slice):
             step = slice_or_key.step
             if step is not None:
                 raise ValueError("Slicing by step not currently supported")
-            return self.get_slice(min_=slice_or_key.start,max_=slice_or_key.stop)
-            
-        elif isinstance(slice_or_key,int):
-            max_ = slice_or_key +1
+            return self.get_slice(min_=slice_or_key.start, max_=slice_or_key.stop)
+
+        elif isinstance(slice_or_key, int):
+            max_ = slice_or_key + 1
             if max_ == 0:
                 max_ = None
-            return self.get_slice(min_=slice_or_key,max_=max_)
+            return self.get_slice(min_=slice_or_key, max_=max_)
 
     def get_slice(self, min_, max_=None):
         """
@@ -400,7 +406,7 @@ for k,v in d.items(): d[k] = str(v)
         """
         # handle negative coordinates
         dna_size = self._dna_size
-        if min_ is None: # for slicing e.g. [:]
+        if min_ is None:  # for slicing e.g. [:]
             min_ = 0
         if max_ is not None and max_ < 0:
             if max_ < -dna_size:
@@ -428,7 +434,7 @@ for k,v in d.items(): d[k] = str(v)
         mask_block_sizes = self._mask_block_sizes
         offset = self._offset
         packed_dna_size = self._packed_dna_size
-        #n_bytes = self._n_bytes
+        # n_bytes = self._n_bytes
 
         # region_size is how many bases the region is
         if max_ is None:
@@ -462,8 +468,8 @@ for k,v in d.items(): d[k] = str(v)
         if (blocks_to_read * 4 + local_offset) > self._file_size:
             fourbyte_dna.fromfile(file_handle, blocks_to_read - 1)
             morebytes = file_handle.read()  # read the remaining characters
-#            if byteswapped:
-#                morebytes = ''.join(reversed(morebytes))
+        #            if byteswapped:
+        #                morebytes = ''.join(reversed(morebytes))
         else:
             fourbyte_dna.fromfile(file_handle, blocks_to_read)
             morebytes = None
@@ -485,7 +491,7 @@ for k,v in d.items(): d[k] = str(v)
             start -= min_
             end -= min_
             # this should actually be decoded, 00=N, 01=n
-            str_as_array[start:end] = array(_CHAR_CODE, 'N'*(end-start))
+            str_as_array[start:end] = array(_CHAR_CODE, 'N' * (end - start))
         lower = str.lower
         first_masked_region = max(0,
                                   bisect_right(mask_block_starts, min_) - 1)
@@ -493,9 +499,9 @@ for k,v in d.items(): d[k] = str(v)
                                  1 + bisect_right(mask_block_starts, max_,
                                                   lo=first_masked_region))
         for start, size in izip(mask_block_starts[first_masked_region:
-                                                  last_masked_region],
+        last_masked_region],
                                 mask_block_sizes[first_masked_region:
-                                                 last_masked_region]):
+                                last_masked_region]):
             end = start + size
             if end <= min_:
                 continue
@@ -524,6 +530,7 @@ class TwoBitFileError(Exception):
     """
     Base exception for TwoBit module
     """
+
     def __init__(self, msg):
         errtext = 'Invalid 2-bit file. ' + msg
         return super(TwoBitFileError, self).__init__(errtext)
@@ -681,6 +688,7 @@ def twobit_reader(twobit_file, input_stream=None, write=None):
             print(">%s:%d-%d" % (chrom, start, end))
             print(textwrap.fill(seq, 60))
     return
+
 
 if __name__ == '__main__':
     cmdline_reader()
