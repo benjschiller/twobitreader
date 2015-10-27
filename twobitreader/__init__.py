@@ -243,6 +243,9 @@ See TwoBitSequence for more info
                                         self._byteswapped)
         return
 
+    def __reduce__(self): # enables pickling
+        return (TwoBitFile,(self._filename,))
+
     def _load_header(self):
         file_handle = self._file_handle
         header = array(LONG)

@@ -3,6 +3,11 @@ import unittest
 import twobitreader
 import os
 import sys
+import pickle
+if sys.version_info < (3,):
+    from cStringIO import StringIO
+else:
+    from io import BytesIO as StringIO
 
 
 class HasLongTypeTestCase(unittest.TestCase):
@@ -202,3 +207,14 @@ class CheckTestTwoBitFileTest(unittest.TestCase):
             found = t["chr10"][start:end]
             self.assertEqual(found, expected,
                              "__getitem__ failed on [%s:%s]. Expected %s, got %s" % (start, end, expected, found))
+
+    def test_pickle(self):
+        t = twobitreader.TwoBitFile(self.filename)
+        buf = StringIO()
+        pickle.dump(t,buf)
+        buf.seek(0)
+        t2 = pickle.load(buf)
+        self.assertListEqual(sorted(t.keys()),sorted(t2.keys()))
+        for k in t:
+            self.assertEqual(str(t[k]),str(t2[k]))
+
