@@ -132,7 +132,6 @@ TWOBYTE_TABLE = create_twobyte_table()
 
 def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size,
                         more_bytes=None):
-    if more_bytes is not None: print(array('B', more_bytes))
     """
     takes in an array of longs (4 bytes) and converts them to bases in
     a char array

@@ -28,7 +28,7 @@ except ImportError:
     pass
 
 name = 'twobitreader'
-version = "3.1.0"
+version = "3.1.1"
 
 
 def main():
@@ -60,6 +60,7 @@ def main():
             'Programming Language :: Python :: 3.2',
             'Programming Language :: Python :: 3.3',
             'Programming Language :: Python :: 3.4',
+            'Programming Language :: Python :: 3.5',
             'Topic :: Scientific/Engineering :: Bio-Informatics'
         ]
     )
