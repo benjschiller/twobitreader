@@ -166,14 +166,16 @@ def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size,
     dna = array(_CHAR_CODE, 'N' * (longs_len * 16 + 4 * shorts_length))
     # translate from 32-bit blocks to bytes
     # this method ensures correct endianess (byteswap as neeed)
-    bytes_ = array('B')
-    bytes_.fromstring(longs.tostring())
-    # first block
-    first_block = ''.join([''.join(BYTE_TABLE[bytes_[x]]) for x in range(4)])
-    i = 16 - first_base_offset
-    if array_size < i:
-        i = array_size
-    dna[0:i] = array(_CHAR_CODE, first_block[first_base_offset:first_base_offset + i])
+    i = 0
+    if longs_len > 0:
+        bytes_ = array('B')
+        bytes_.fromstring(longs.tostring())
+        # first block
+        first_block = ''.join([''.join(BYTE_TABLE[bytes_[x]]) for x in range(4)])
+        i = 16 - first_base_offset
+        if array_size < i:
+            i = array_size
+        dna[0:i] = array(_CHAR_CODE, first_block[first_base_offset:first_base_offset + i])
     if longs_len > 1:
         # middle blocks (implicitly skipped if they don't exist)
         for byte in bytes_[4:-4]:
