@@ -28,7 +28,7 @@ except ImportError:
     pass
 
 name = 'twobitreader'
-version = "3.1.4"
+version = "3.1.5"
 
 
 def main():
