@@ -18,7 +18,13 @@ import logging
 import textwrap
 import sys
 
+at_least_py3 = at_least_py32 = False
 if sys.version_info > (3,):
+    at_least_py3 = True
+if sys.version_info > (3,2):
+    at_least_py32 = True
+
+if at_least_py3:
     izip = zip
     xrange = range
     _CHAR_CODE = 'u'
@@ -34,7 +40,7 @@ def safe_tostring(ary):
     """
     convert arrays to strings in a Python 2.x / 3.x safe way
     """
-    if sys.version_info > (3,):
+    if at_least_py3:
         return ary.tounicode().encode("ascii").decode()
     else:
         return ary.tostring()
@@ -140,7 +146,7 @@ def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size,
     and the desired array_size
     If you have less than a long worth of bases at the end, you can provide
     them as a string with more_bytes=
-    
+
     NOTE: last_base_offset is inside more_bytes not the last long, if more_bytes
           is not None
     returns the correct subset of the array based on provided offsets
@@ -169,7 +175,10 @@ def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size,
     i = 0
     if longs_len > 0:
         bytes_ = array('B')
-        bytes_.fromstring(longs.tostring())
+        if at_least_py32:
+            bytes_.frombytes(longs.tobytes())
+        else:
+            bytes_.fromstring(longs.tostring())
         # first block
         first_block = ''.join([''.join(BYTE_TABLE[bytes_[x]]) for x in range(4)])
         i = 16 - first_base_offset
