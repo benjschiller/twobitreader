@@ -38,7 +38,7 @@ def main():
         description='A fast python package for reading .2bit files \
 (used by the UCSC genome browser)',
         author='Benjamin Schiller',
-        author_email='ben.j.schiller@gmail',
+        author_email='ben.j.schiller@gmail.com',
         packages=['twobitreader'],
         package_data={'twobitreader': ['tests/test.2bit']},
         url='https://github.com/benjschiller/twobitreader',
