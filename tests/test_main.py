@@ -1,8 +1,9 @@
 # Some of this test code is specific to 2.7
+import sys
+sys.path.insert(0, "..")
 import unittest
 import twobitreader
 import os
-import sys
 import pickle
 if sys.version_info < (3,):
     from cStringIO import StringIO
@@ -157,29 +158,34 @@ class CheckTestTwoBitFileTest(unittest.TestCase):
         t = twobitreader.TwoBitFile(self.filename)
         self.assertEqual(set(t.keys()),
                          set(['chr%d' % x for x in range(1, 11)]))
+        t.close()
 
     def test_twobit_file_has_sequences(self):
         """make sure file has chr1 - chr10"""
         t = twobitreader.TwoBitFile(self.filename)
         for sequence in t.values():
             self.assertTrue(isinstance(sequence, twobitreader.TwoBitSequence))
+        t.close()
 
     def test_twobit_sequence_lengths(self):
         t = twobitreader.TwoBitFile(self.filename)
         self.assertEqual(t.sequence_sizes()['chr1'], 75)
         for i in range(2, 11):
             self.assertEqual(t.sequence_sizes()['chr%d' % i], 50)
+        t.close()
 
     def test_twobit_chr1_sequence(self):
         t = twobitreader.TwoBitFile(self.filename)
         chr1 = str(t['chr1'])
         self.assertEqual(chr1, 'GAACATGTACAACCTGACCTTCCACgaacatgtacaacctgaccttccacNNNNATGTACAACCTGACCTTCCAC')
+        t.close()
 
     def test_twobit_chr10_sequence(self):
         t = twobitreader.TwoBitFile(self.filename)
         chr10 = str(t['chr10'])
         self.assertEqual(chr10,
                          'gaaagggaactccctgaccccttgtgaaagggaactccctgaccccttgt')
+        t.close()
 
     def test_twobitsequence_getitem_key(self):
         t = twobitreader.TwoBitFile(self.filename)
@@ -192,6 +198,7 @@ class CheckTestTwoBitFileTest(unittest.TestCase):
             found = t["chr10"].__getitem__(key)
             msg = "__getitem__[%s] failed. Expected %s, got %s" % (key, expected, found)
             self.assertEqual(found, expected, msg)
+        t.close()
 
     def test_twobitsequence_getitem_slice(self):
         t = twobitreader.TwoBitFile(self.filename)
@@ -207,6 +214,7 @@ class CheckTestTwoBitFileTest(unittest.TestCase):
             found = t["chr10"][start:end]
             self.assertEqual(found, expected,
                              "__getitem__ failed on [%s:%s]. Expected %s, got %s" % (start, end, expected, found))
+        t.close()
 
     def test_pickle(self):
         t = twobitreader.TwoBitFile(self.filename)
@@ -217,4 +225,19 @@ class CheckTestTwoBitFileTest(unittest.TestCase):
         self.assertListEqual(sorted(t.keys()),sorted(t2.keys()))
         for k in t:
             self.assertEqual(str(t[k]),str(t2[k]))
+        t.close()
 
+    def test_context_manager(self):
+        with twobitreader.TwoBitFile(self.filename) as t:
+            chr10 = str(t['chr10'])
+            self.assertEqual(chr10,
+                             'gaaagggaactccctgaccccttgtgaaagggaactccctgaccccttgt')
+
+    def test_closed_file(self):
+        t = twobitreader.TwoBitFile(self.filename)
+        t.close()
+        with self.assertRaises(ValueError):
+            chr1 = str(t['chr1'])
+
+if __name__ == '__main__':
+    unittest.main()
