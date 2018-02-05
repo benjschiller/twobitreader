@@ -200,7 +200,10 @@ def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size,
         i += 16
     if more_bytes is not None:
         bytes_ = array('B')
-        bytes_.fromstring(more_bytes)
+        if at_least_py32:
+            bytes_.frombytes(more_bytes)
+        else:
+            bytes_.fromstring(more_bytes)
         j = i
         for byte in bytes_:
             j = i + 4
@@ -233,11 +236,16 @@ tttgcatgttaagtttttttcc'
 
 Fair warning: dumping the entire chromosome requires a lot of memory
 
-See TwoBitSequence for more info
-    """
+See TwoBitSequence for more info.
+
+TwoBitFile is also a context manager:
+>>> with TwoBitFile('hg18.2bit') as genome:
+>>>    seq = genome['chr20'][100100:100120]
+"""
 
     def __init__(self, foo):
         super(TwoBitFile, self).__init__()
+        self._file_handle = None  # for __del__ if checks fail
         if not exists(foo):
             raise IOError(ENOENT, strerror(ENOENT), foo)
         if not access(foo, R_OK):
@@ -252,6 +260,21 @@ See TwoBitSequence for more info
                                         self._file_size,
                                         self._byteswapped)
         return
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
+    def close(self):
+        """close the underlying two-bit file"""
+        # attempts to access after this results in a ValueError
+        self._file_handle.close()
+
+    def __del__(self):
+        if self._file_handle is not None:
+            self.close()
 
     def __reduce__(self): # enables pickling
         return (TwoBitFile,(self._filename,))
