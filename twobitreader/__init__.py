@@ -29,6 +29,7 @@ if at_least_py3:
     xrange = range
     _CHAR_CODE = 'u'
     iteritems = dict.items
+    long = int
 else:
     from itertools import izip
 
