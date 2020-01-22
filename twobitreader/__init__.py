@@ -77,13 +77,13 @@ def byte_to_bases(x):
 
 def bits_to_base(x):
     """convert integer representation of two bits to correct base"""
-    if x is 0:
+    if x == 0:
         return 'T'
-    elif x is 1:
+    elif x == 1:
         return 'C'
-    elif x is 2:
+    elif x == 2:
         return 'A'
-    elif x is 3:
+    elif x == 3:
         return 'G'
     else:
         raise ValueError('Only integers 0-3 are valid inputs')
