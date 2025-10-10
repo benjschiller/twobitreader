@@ -49,7 +49,6 @@ def main():
         },
         classifiers=[
             'Development Status :: 4 - Beta',
-            'License :: OSI Approved :: Artistic License',
             'Intended Audience :: Developers',
             'Intended Audience :: End Users/Desktop',
             'Intended Audience :: Science/Research',
