@@ -1,0 +1,54 @@
+[project]
+name = "twobitreader"
+version = "3.1.8"
+description = "A fast python package for reading .2bit files (used by the UCSC genome browser)"
+readme = "README.md"
+authors = [
+    { name = "Benjamin Schiller", email = "ben.j.schiller@gmail.com" }
+]
+keywords = ["genomics", "ucsc", "2bit", "bioinformatics"]
+dependencies = [
+    "setuptools>=80",
+]
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "Intended Audience :: Science/Research",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering :: Bio-Informatics"
+]
+license = "Artistic-2.0"
+license-files = ["LICENSE.txt", "COPYRIGHT"]
+
+[project.urls]
+Homepage = "https://github.com/benjschiller/twobitreader"
+Repository = "https://github.com/benjschiller/twobitreader"
+
+[project.optional-dependencies]
+# Install with: pip install .[docs]
+docs = [
+  "sphinx>=7.3",
+  "furo>=2024.1.29",
+  "myst-parser>=2.0",
+  "sphinx-autodoc-typehints>=2.1.0",
+  "sphinx-copybutton>=0.5.2",
+]
+
+[tool.setuptools.packages.find]
+include = ["twobitreader", "twobitreader.*"]
+
+[tool.setuptools.package-data]
+twobitreader = ["tests/test.2bit"]
+
+[build-system]
+requires = [
+    "setuptools>=80",
+    "setuptools-scm>=8.0.0",
+]
+build-backend = "setuptools.build_meta"
