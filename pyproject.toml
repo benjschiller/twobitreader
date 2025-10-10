@@ -40,11 +40,11 @@ docs = [
   "sphinx-copybutton>=0.5.2",
 ]
 
-[tool.setuptools.dynamic]
-version = { attr = "twobitreader.__version__" }
-
 [tool.setuptools.packages.find]
 include = ["twobitreader", "twobitreader.*"]
+
+[tool.setuptools.package-data]
+twobitreader = ["tests/test.2bit"]
 
 [build-system]
 requires = [
