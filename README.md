@@ -2,13 +2,17 @@
 
 twobitreader is a fast python package for reading .2bit files (used by UCSC genome browser)
 
-To install, run
+To install (recommended):
 
-    python setup.py install
+```bash
+    pip install .
+```
 
 Can be run as a script
 
+```bash
     python -m twobitreader example.2bit < example.bed
+```
 
 Or imported as a module ("twobitreader")
 
