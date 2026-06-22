@@ -151,7 +151,7 @@ class SimpleLongsToCharTest(unittest.TestCase):
             char_array = twobitreader.longs_to_char_array(self.longs_array, 0, 16, length)
             self.assertEqual(len(char_array), length, "Longs to character array conversion failed at length %d" % length)
 
-    def test_first_base_with_offsets(self):
+    def test_first_base_with_offsets_plain_assertions(self):
         for offset in range(16):
             first_base = twobitreader.longs_to_char_array(self.longs_array, offset, 16, 1)[0]
             self.assertEqual(first_base, self.chars_array[offset])
