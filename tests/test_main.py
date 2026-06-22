@@ -318,6 +318,17 @@ class CheckTestTwoBitFileTest(unittest.TestCase):
             )
         t.close()
 
+    def test_twobitsequence_slice_starting_past_end(self):
+        t = twobitreader.TwoBitFile(self.filename)
+        sequence = t["chr10"]
+        length = len(sequence)
+        self.assertEqual(sequence[length:], "")
+        self.assertEqual(sequence[length + 1 :], "")
+        self.assertEqual(sequence[length:100], "")
+        self.assertEqual(sequence[length + 1 : 100], "")
+        self.assertEqual(sequence[length - 1 : 100], "t")
+        t.close()
+
     def test_pickle(self):
         t = twobitreader.TwoBitFile(self.filename)
         buf = StringIO()

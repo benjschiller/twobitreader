@@ -493,16 +493,16 @@ class TwoBitSequence(object):
             if min_ < -dna_size:
                 raise IndexError("index out of range")
             min_ = dna_size + min_
+        if max_ is None or max_ > dna_size:
+            max_ = dna_size
+
         # make sure there's a proper range
-        if max_ is not None and min_ > max_:
+        if min_ > max_:
             return ""
         if max_ == 0 or max_ == min_:
             return ""
 
         # load all the data
-        if max_ is None or max_ > dna_size:
-            max_ = dna_size
-
         file_handle = self._file_handle
         byteswapped = self._byteswapped
         n_block_starts = self._n_block_starts
