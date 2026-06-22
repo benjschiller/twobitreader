@@ -5,10 +5,73 @@ import unittest
 import twobitreader
 import os
 import pickle
+import struct
+import tempfile
 if sys.version_info < (3,):
     from cStringIO import StringIO
 else:
     from io import BytesIO as StringIO
+
+
+BASE_TO_BITS = {
+    'T': 0,
+    'C': 1,
+    'A': 2,
+    'G': 3,
+    'N': 0,
+}
+
+
+def pack_sequence(seq):
+    packed = bytearray()
+    for block_start in range(0, len(seq), 4):
+        byte = 0
+        block = seq[block_start:block_start + 4]
+        for index, base in enumerate(block):
+            byte |= BASE_TO_BITS[base.upper()] << (6 - index * 2)
+        packed.append(byte)
+    while len(packed) % 4:
+        packed.append(0)
+    return bytes(packed)
+
+
+def twobit_record(seq, n_blocks=(), mask_blocks=()):
+    n_starts = [start for start, _ in n_blocks]
+    n_sizes = [size for _, size in n_blocks]
+    mask_starts = [start for start, _ in mask_blocks]
+    mask_sizes = [size for _, size in mask_blocks]
+    return b''.join([
+        struct.pack('<I', len(seq)),
+        struct.pack('<I', len(n_blocks)),
+        b''.join(struct.pack('<I', start) for start in n_starts),
+        b''.join(struct.pack('<I', size) for size in n_sizes),
+        struct.pack('<I', len(mask_blocks)),
+        b''.join(struct.pack('<I', start) for start in mask_starts),
+        b''.join(struct.pack('<I', size) for size in mask_sizes),
+        struct.pack('<I', 0),
+        pack_sequence(seq),
+    ])
+
+
+def write_twobit_file(path, sequences):
+    names = list(sequences)
+    index_size = sum(1 + len(name.encode('ascii')) + 4 for name in names)
+    offset = 16 + index_size
+    index = []
+    records = []
+    for name in names:
+        encoded_name = name.encode('ascii')
+        data = sequences[name]
+        body = twobit_record(data['seq'], data.get('n_blocks', ()), data.get('mask_blocks', ()))
+        index.append(struct.pack('B', len(encoded_name)) + encoded_name + struct.pack('<I', offset))
+        records.append(body)
+        offset += len(body)
+    with open(path, 'wb') as handle:
+        handle.write(b''.join([
+            struct.pack('<IIII', 0x1A412743, 0, len(names), 0),
+            b''.join(index),
+            b''.join(records),
+        ]))
 
 
 class HasLongTypeTestCase(unittest.TestCase):
@@ -37,6 +100,11 @@ class ByteTableTestCase(unittest.TestCase):
         self.assertEqual(bt[170], ['A', 'A', 'A', 'A'])
         self.assertEqual(bt[255], ['G', 'G', 'G', 'G'])
 
+    def test_twobyte_table(self):
+        self.assertEqual(len(twobitreader.TWOBYTE_TABLE), 2 ** 16)
+        self.assertEqual(twobitreader.TWOBYTE_TABLE[0], ['T'] * 8)
+        self.assertEqual(twobitreader.TWOBYTE_TABLE[0xffff], ['G'] * 8)
+
 
 class SimpleBytesTestCase(unittest.TestCase):
     def test_bits_to_base(self):
@@ -60,13 +128,12 @@ class SimpleLongsToCharTest(unittest.TestCase):
                                                      3797081033, 1243780212])
         self.as_string = \
             'TCTACCTAAGCGTAATGTTCCTCGCGTGGTAAGTACGCAGCCTAGATACGCTACCTTATACTAA'
-        self.chars_array = array(twobitreader._CHAR_CODE,
-                                 'TCTACCTAAGCGTAATGTTCCTCGCGTGGTAAGTACGCAGCCTAGATACGCTACCTTATACTAA')
+        self.chars_array = list('TCTACCTAAGCGTAATGTTCCTCGCGTGGTAAGTACGCAGCCTAGATACGCTACCTTATACTAA')
 
     def test_longs_to_char(self):
-        self.assertEqual(twobitreader.longs_to_char_array(self.longs_array,
-                                                          0, 16, 64),
-                         self.chars_array)
+        chars = twobitreader.longs_to_char_array(self.longs_array, 0, 16, 64)
+        self.assertEqual(chars, self.chars_array)
+        self.assertTrue(isinstance(chars, list))
 
     def test_longs_to_string(self):
         as_string = twobitreader.safe_tostring(twobitreader.longs_to_char_array(self.longs_array,
@@ -134,6 +201,43 @@ class BadTwoBitFileTest(unittest.TestCase):
         self.assertRaises(IOError,
                           twobitreader.TwoBitFile,
                           'notreallyafile')
+
+
+class GeneratedTwoBitFileTest(unittest.TestCase):
+    def setUp(self):
+        fd, self.filename = tempfile.mkstemp(suffix='.2bit')
+        os.close(fd)
+
+    def tearDown(self):
+        os.remove(self.filename)
+
+    def test_short_last_chromosome_slices(self):
+        write_twobit_file(self.filename, {
+            'FIRST_CHR': {
+                'seq': 'ACGTACGTACGTACGTACGTACGTACGTA',
+            },
+            'LAST_CHR': {
+                'seq': 'AAAGGGGGGC',
+            },
+        })
+        with twobitreader.TwoBitFile(self.filename) as reader:
+            self.assertEqual(reader['LAST_CHR'][0:9], 'AAAGGGGGG')
+            self.assertEqual(reader['LAST_CHR'][5:6], 'G')
+            self.assertEqual(reader['LAST_CHR'][6:9], 'GGG')
+            self.assertEqual(reader['LAST_CHR'][0:10], 'AAAGGGGGGC')
+            self.assertEqual(reader['LAST_CHR'][:], 'AAAGGGGGGC')
+
+    def test_n_and_mask_blocks_are_applied_to_overlapping_slices(self):
+        write_twobit_file(self.filename, {
+            'chr1': {
+                'seq': 'ACGTACGTACGTACGTACGTACGTACGTACGT',
+                'n_blocks': [(4, 3), (20, 5)],
+                'mask_blocks': [(10, 4), (24, 4)],
+            },
+        })
+        with twobitreader.TwoBitFile(self.filename) as reader:
+            self.assertEqual(reader['chr1'][0:12], 'ACGTNNNTACgt')
+            self.assertEqual(reader['chr1'][18:29], 'GTNNNNncgtA')
 
 
 class CheckTestTwoBitFileTest(unittest.TestCase):

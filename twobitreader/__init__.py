@@ -27,24 +27,29 @@ if sys.version_info > (3,2):
 if at_least_py3:
     izip = zip
     xrange = range
-    _CHAR_CODE = 'u'
     iteritems = dict.items
     long = int
 else:
     from itertools import izip
 
-    _CHAR_CODE = 'c'
     iteritems = dict.iteritems
 
 
 def safe_tostring(ary):
     """
-    convert arrays to strings in a Python 2.x / 3.x safe way
+    convert a character sequence to a string.
     """
-    if at_least_py3:
+    if isinstance(ary, str):
+        return ary
+    if isinstance(ary, (bytes, bytearray)):
+        return bytes(ary).decode("ascii")
+    if hasattr(ary, "tounicode"):
         return ary.tounicode().encode("ascii").decode()
-    else:
+    if hasattr(ary, "tobytes"):
+        return ary.tobytes().decode("ascii")
+    if hasattr(ary, "tostring"):
         return ary.tostring()
+    return ''.join(ary)
 
 
 def true_long_type():
@@ -133,8 +138,53 @@ def create_twobyte_table():
     return d
 
 
+class _LazyTwoByteTable(object):
+    """Build the larger two-byte lookup table only when callers use it."""
+
+    def __init__(self):
+        self._table = None
+
+    def _get_table(self):
+        if self._table is None:
+            self._table = create_twobyte_table()
+        return self._table
+
+    def __contains__(self, key):
+        return key in self._get_table()
+
+    def __eq__(self, other):
+        return self._get_table() == other
+
+    def __getitem__(self, key):
+        return self._get_table()[key]
+
+    def __iter__(self):
+        return iter(self._get_table())
+
+    def __len__(self):
+        return len(self._get_table())
+
+    def __repr__(self):
+        return repr(self._get_table())
+
+    def copy(self):
+        return self._get_table().copy()
+
+    def get(self, key, default=None):
+        return self._get_table().get(key, default)
+
+    def items(self):
+        return self._get_table().items()
+
+    def keys(self):
+        return self._get_table().keys()
+
+    def values(self):
+        return self._get_table().values()
+
+
 BYTE_TABLE = create_byte_table()
-TWOBYTE_TABLE = create_twobyte_table()
+TWOBYTE_TABLE = _LazyTwoByteTable()
 
 
 def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size,
@@ -153,7 +203,7 @@ def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size,
     returns the correct subset of the array based on provided offsets
     """
     if array_size == 0:
-        return array(_CHAR_CODE)
+        return []
     elif array_size < 0:
         raise ValueError('array_size must be at least 0')
 
@@ -170,7 +220,7 @@ def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size,
     if array_size > longs_len * 16 + 4 * shorts_length:
         raise ValueError('array_size exceeds maximum possible for input')
 
-    dna = array(_CHAR_CODE, 'N' * (longs_len * 16 + 4 * shorts_length))
+    dna = list('N' * (longs_len * 16 + 4 * shorts_length))
     # translate from 32-bit blocks to bytes
     # this method ensures correct endianess (byteswap as neeed)
     i = 0
@@ -185,15 +235,15 @@ def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size,
         i = 16 - first_base_offset
         if array_size < i:
             i = array_size
-        dna[0:i] = array(_CHAR_CODE, first_block[first_base_offset:first_base_offset + i])
+        dna[0:i] = list(first_block[first_base_offset:first_base_offset + i])
     if longs_len > 1:
         # middle blocks (implicitly skipped if they don't exist)
         for byte in bytes_[4:-4]:
-            dna[i:i + 4] = array(_CHAR_CODE, BYTE_TABLE[byte])
+            dna[i:i + 4] = BYTE_TABLE[byte]
             i += 4
         # last block
-        last_block = array(_CHAR_CODE, ''.join([''.join(BYTE_TABLE[bytes_[x]])
-                                                for x in range(-4, 0)]))
+        last_block = list(''.join([''.join(BYTE_TABLE[bytes_[x]])
+                                   for x in range(-4, 0)]))
         if more_bytes is None:
             dna[i:i + last_base_offset] = last_block[0:last_base_offset]
         else:  # if there are more bytes, we need the whole last block
@@ -209,10 +259,10 @@ def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size,
         for byte in bytes_:
             j = i + 4
             if j > array_size:
-                dnabytes = array(_CHAR_CODE, BYTE_TABLE[byte])[0:(array_size - i)]
+                dnabytes = BYTE_TABLE[byte][0:(array_size - i)]
                 dna[i:array_size] = dnabytes
                 break
-            dna[i:i + last_base_offset] = array(_CHAR_CODE, BYTE_TABLE[byte])
+            dna[i:i + 4] = BYTE_TABLE[byte]
             i += 4
     return dna[0:array_size]
 
@@ -314,7 +364,6 @@ TwoBitFile is also a context manager:
             name_size.fromfile(file_handle, 1)
             if byteswapped:
                 name_size.byteswap()
-            # name = array(_CHAR_CODE)
             name = array('B')
             name.fromfile(file_handle, name_size[0])
             name = "".join([chr(X) for X in name])
@@ -515,7 +564,15 @@ for k,v in d.items(): d[k] = str(v)
         str_as_array = longs_to_char_array(fourbyte_dna, first_base_offset,
                                            last_base_offset, region_size,
                                            more_bytes=morebytes)
-        for start, size in izip(n_block_starts, n_block_sizes):
+        first_n_region = max(0,
+                             bisect_right(n_block_starts, min_) - 1)
+        last_n_region = min(len(n_block_starts),
+                            1 + bisect_right(n_block_starts, max_,
+                                             lo=first_n_region))
+        for start, size in izip(n_block_starts[first_n_region:
+        last_n_region],
+                                n_block_sizes[first_n_region:
+                                last_n_region]):
             end = start + size
             if end <= min_:
                 continue
@@ -528,7 +585,7 @@ for k,v in d.items(): d[k] = str(v)
             start -= min_
             end -= min_
             # this should actually be decoded, 00=N, 01=n
-            str_as_array[start:end] = array(_CHAR_CODE, 'N' * (end - start))
+            str_as_array[start:end] = list('N' * (end - start))
         lower = str.lower
         first_masked_region = max(0,
                                   bisect_right(mask_block_starts, min_) - 1)
@@ -550,8 +607,7 @@ for k,v in d.items(): d[k] = str(v)
                 end = max_
             start -= min_
             end -= min_
-            str_as_array[start:end] = array(_CHAR_CODE,
-                                            lower(safe_tostring(str_as_array[start:end])))
+            str_as_array[start:end] = list(lower(safe_tostring(str_as_array[start:end])))
         if not len(str_as_array) == max_ - min_:
             raise RuntimeError("Sequence was the wrong size")
         return safe_tostring(str_as_array)

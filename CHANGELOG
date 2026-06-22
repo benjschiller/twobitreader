@@ -1,3 +1,12 @@
+06-22-26
+Version 4.0.0
+Replace deprecated array('u') decoded sequence buffers with plain Python
+character lists. This keeps decoding pure Python, removes Python 3.14
+deprecation warnings, and changes the return type of longs_to_char_array.
+
+Make TWOBYTE_TABLE lazy to avoid import-time memory overhead, and use bisect
+when applying N-blocks to slices.
+
 04-17-12
 Some modifications to cmdline_reader and download module so that they can be run
 as functions too. added more flexible twobit_reader which can write to files too
