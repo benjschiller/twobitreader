@@ -1,7 +1,7 @@
 [project]
 name = "twobitreader"
 version = "4.0.0"
-description = "A fast python package for reading .2bit files (used by the UCSC genome browser)"
+description = "A fast, pure-Python package for reading .2bit files (used by the UCSC genome browser)"
 readme = "README.md"
 authors = [
     { name = "Benjamin Schiller", email = "ben.j.schiller@gmail.com" }
