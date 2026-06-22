@@ -1,7 +1,8 @@
 # twobitreader
 
 [![CI](https://github.com/benjschiller/twobitreader/actions/workflows/ci.yml/badge.svg)](https://github.com/benjschiller/twobitreader/actions/workflows/ci.yml)
-[![Build](https://github.com/benjschiller/twobitreader/actions/workflows/build-test.yml/badge.svg)](https://github.com/benjschiller/twobitreader/actions/workflows/build-test.yml)
+[![Lint](https://github.com/benjschiller/twobitreader/actions/workflows/lint.yml/badge.svg)](https://github.com/benjschiller/twobitreader/actions/workflows/lint.yml)
+[![Docs](https://github.com/benjschiller/twobitreader/actions/workflows/docs.yml/badge.svg)](https://github.com/benjschiller/twobitreader/actions/workflows/docs.yml)
 
 `twobitreader` is a small, fast Python package for reading UCSC `.2bit` genome
 files. It supports random access by sequence name and genomic interval, making
@@ -46,7 +47,8 @@ For local development, clone the repository and install it in editable mode:
 ```bash
 git clone https://github.com/benjschiller/twobitreader.git
 cd twobitreader
-pip install -e .
+pip install -e ".[dev,docs]"
+pre-commit install
 ```
 
 ## Python Usage
@@ -123,6 +125,18 @@ Build the package with:
 
 ```bash
 python3 -m build
+```
+
+Build the Sphinx documentation with:
+
+```bash
+sphinx-build -W --keep-going -b html doc doc/_build/html
+```
+
+Run formatting and repository checks with:
+
+```bash
+pre-commit run --all-files
 ```
 
 The Makefile uses `python` in a few targets. If your environment only provides

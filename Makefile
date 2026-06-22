@@ -1,14 +1,18 @@
-.PHONY: help install test build clean lint format check
+.PHONY: help install test docs build clean lint format check
 
 help:  ## Show this help message
 	@echo "Available commands:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 install:  ## Install the package in development mode
-	pip install -e .
+	python -m pip install -e ".[dev,docs]"
 
-test:  ## Run basic tests
+test:  ## Run tests
+	python -m unittest discover -s tests
 	python test_package.py
+
+docs:  ## Build documentation
+	sphinx-build -W --keep-going -b html doc doc/_build/html
 
 build:  ## Build the package
 	python -m build
@@ -21,24 +25,18 @@ clean:  ## Clean build artifacts
 	find . -type f -name "*.pyc" -delete
 
 lint:  ## Run linting checks
-	flake8 twobitreader/ --count --select=E9,F63,F7,F82 --show-source --statistics
-	flake8 twobitreader/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+	pre-commit run --all-files
 
 format:  ## Format code with black and isort
-	black twobitreader/
-	isort twobitreader/
+	black twobitreader tests doc
 
 check:  ## Run all checks (lint, format check, build test)
-	@echo "Running format check..."
-	black --check twobitreader/
-	isort --check-only twobitreader/
-	@echo "Running linting..."
-	flake8 twobitreader/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-	@echo "Testing build..."
-	python -m build
-	@echo "Testing package..."
+	pre-commit run --all-files
+	python -m unittest discover -s tests
 	python test_package.py
-	@echo "All checks passed! ✅"
+	sphinx-build -W --keep-going -b html doc doc/_build/html
+	python -m build
+	twine check dist/*
 
 ci-test:  ## Run tests similar to CI
 	python -m pip install --upgrade pip
