@@ -728,29 +728,30 @@ def twobit_reader(twobit_file, input_stream=None, write=None):
     for i, line in enumerate((line.rstrip("\n\r") for line in input_stream)):
         fields = line.split()
         if not len(fields) >= 3:
-            logging.warn(warning_msg, "start", i, line)
+            logging.warning(warning_msg, "start", i, line)
             continue
         chrom = fields[0]
         if not chrom in twobit_file:
-            logging.warn(warning_msg, "chrom", i, line)
+            logging.warning(warning_msg, "chrom", i, line)
             continue
         try:
             start = long(fields[1])
         except ValueError:
-            logging.warn(warning_msg, "start", i, line)
+            logging.warning(warning_msg, "start", i, line)
+            continue
         if start < 0:
-            logging.warn(warning_msg, "start", i, line)
-            logging.warn("Using 0 as start instead for line %d", i)
+            logging.warning(warning_msg, "start", i, line)
+            logging.warning("Using 0 as start instead for line %d", i)
             start = 0
         try:
             end = long(fields[2])
         except ValueError:
-            logging.warn(warning_msg, "end", i, line)
+            logging.warning(warning_msg, "end", i, line)
             continue
         chrom_len = len(twobit_file[chrom])
         if end > len(twobit_file[chrom]):
-            logging.warn("At line %d, end is greater than chrom length %d\n%s", i, chrom_len, line)
-            logging.warn("Sequence will be truncated at chrom" + "length for line %d", i)
+            logging.warning("At line %d, end is greater than chrom length %d\n%s", i, chrom_len, line)
+            logging.warning("Sequence will be truncated at chrom" + "length for line %d", i)
             end = chrom_len
         seq = twobit_file[chrom][start:end]
         if write is not None:

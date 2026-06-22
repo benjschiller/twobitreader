@@ -329,6 +329,15 @@ class CheckTestTwoBitFileTest(unittest.TestCase):
         self.assertEqual(sequence[length - 1 : 100], "t")
         t.close()
 
+    def test_twobit_reader_skips_invalid_start(self):
+        t = twobitreader.TwoBitFile(self.filename)
+        output = []
+        with self.assertLogs(level="WARNING") as logs:
+            twobitreader.twobit_reader(t, input_stream=["chr1 nope 4"], write=output.append)
+        self.assertEqual(output, [])
+        self.assertTrue(any("Invalid start" in message for message in logs.output))
+        t.close()
+
     def test_pickle(self):
         t = twobitreader.TwoBitFile(self.filename)
         buf = StringIO()
