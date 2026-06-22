@@ -23,6 +23,8 @@ The main implementation is in `twobitreader/__init__.py`, with CLI entry points 
 - Smoke test: `python3 test_package.py`
 - Development install: `pip install -e .`
 - Build package: `python3 -m build`
+- Build docs: `sphinx-build -W --keep-going -b html doc doc/_build/html`
+- Run lint/format checks: `pre-commit run --all-files`
 
 The Makefile currently uses `python` for some targets. In environments where
 `python` is not available, run the equivalent command with `python3`.

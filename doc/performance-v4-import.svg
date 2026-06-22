@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="260" viewBox="0 0 760 260" role="img" aria-labelledby="title desc">
+  <title id="title">twobitreader v4 import performance</title>
+  <desc id="desc">Bar chart comparing import time and peak import memory for v3.1.8 and v4.0.0.</desc>
+  <rect width="760" height="260" rx="12" fill="#ffffff"/>
+  <rect x="1" y="1" width="758" height="258" rx="12" fill="none" stroke="#d8dee9"/>
+  <text x="34" y="42" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#111827">Import cost: v4 is lighter at startup</text>
+  <text x="34" y="66" font-family="Arial, sans-serif" font-size="13" fill="#4b5563">Median of 7 cold Python subprocess imports on Python 3.14.5</text>
+
+  <text x="34" y="112" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#111827">Import time</text>
+  <text x="34" y="147" font-family="Arial, sans-serif" font-size="13" fill="#374151">v3.1.8</text>
+  <rect x="120" y="132" width="500" height="22" rx="5" fill="#9ca3af"/>
+  <text x="632" y="148" font-family="Arial, sans-serif" font-size="13" fill="#111827">179.6 ms</text>
+  <text x="34" y="181" font-family="Arial, sans-serif" font-size="13" fill="#374151">v4.0.0</text>
+  <rect x="120" y="166" width="99" height="22" rx="5" fill="#2563eb"/>
+  <text x="231" y="182" font-family="Arial, sans-serif" font-size="13" fill="#111827">35.6 ms, 5.0x faster</text>
+
+  <text x="34" y="222" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#111827">Peak import memory</text>
+  <text x="214" y="222" font-family="Arial, sans-serif" font-size="13" fill="#374151">14.18 MB -> 2.22 MB, 6.4x less</text>
+  <rect x="420" y="206" width="220" height="18" rx="5" fill="#9ca3af"/>
+  <rect x="420" y="230" width="35" height="18" rx="5" fill="#10b981"/>
+  <text x="650" y="220" font-family="Arial, sans-serif" font-size="12" fill="#374151">v3.1.8</text>
+  <text x="465" y="244" font-family="Arial, sans-serif" font-size="12" fill="#374151">v4.0.0</text>
+</svg>

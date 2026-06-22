@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="300" viewBox="0 0 760 300" role="img" aria-labelledby="title desc">
+  <title id="title">twobitreader v4 slice speedups</title>
+  <desc id="desc">Bar chart showing v4 speedups over v3.1.8 for plain slices and N-block-heavy slices.</desc>
+  <rect width="760" height="300" rx="12" fill="#ffffff"/>
+  <rect x="1" y="1" width="758" height="298" rx="12" fill="none" stroke="#d8dee9"/>
+  <text x="34" y="42" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#111827">Slice speedups in v4</text>
+  <text x="34" y="66" font-family="Arial, sans-serif" font-size="13" fill="#4b5563">Median slice times on synthetic 5 Mb .2bit files; higher is better</text>
+
+  <text x="34" y="110" font-family="Arial, sans-serif" font-size="13" fill="#374151">Plain 1 kb slice</text>
+  <rect x="190" y="96" width="101" height="22" rx="5" fill="#2563eb"/>
+  <text x="306" y="112" font-family="Arial, sans-serif" font-size="13" fill="#111827">7.2x faster</text>
+
+  <text x="34" y="148" font-family="Arial, sans-serif" font-size="13" fill="#374151">Plain 100 kb slice</text>
+  <rect x="190" y="134" width="115" height="22" rx="5" fill="#2563eb"/>
+  <text x="320" y="150" font-family="Arial, sans-serif" font-size="13" fill="#111827">8.2x faster</text>
+
+  <text x="34" y="186" font-family="Arial, sans-serif" font-size="13" fill="#374151">Plain 1 Mb slice</text>
+  <rect x="190" y="172" width="109" height="22" rx="5" fill="#2563eb"/>
+  <text x="314" y="188" font-family="Arial, sans-serif" font-size="13" fill="#111827">7.8x faster</text>
+
+  <text x="34" y="224" font-family="Arial, sans-serif" font-size="13" fill="#374151">50k N-blocks, 10 bp</text>
+  <rect x="190" y="210" width="500" height="22" rx="5" fill="#10b981"/>
+  <text x="700" y="226" font-family="Arial, sans-serif" font-size="13" fill="#111827">290x</text>
+
+  <text x="34" y="266" font-family="Arial, sans-serif" font-size="12" fill="#6b7280">The N-block bar uses a compressed scale so the plain-slice improvements remain visible.</text>
+</svg>
