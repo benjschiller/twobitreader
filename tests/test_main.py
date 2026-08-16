@@ -1,4 +1,3 @@
-# Some of this test code is specific to 2.7
 import sys
 
 sys.path.insert(0, "..")
@@ -8,12 +7,7 @@ import os
 import pickle
 import struct
 import tempfile
-
-if sys.version_info < (3,):
-    from cStringIO import StringIO
-else:
-    from io import BytesIO as StringIO
-
+from io import BytesIO as StringIO
 
 BASE_TO_BITS = {
     "T": 0,
@@ -83,6 +77,10 @@ def write_twobit_file(path, sequences, byte_order="<"):
 
 
 class HasLongTypeTestCase(unittest.TestCase):
+    def test_version_is_exposed(self):
+        self.assertIsInstance(twobitreader.__version__, str)
+        self.assertTrue(twobitreader.__version__)
+
     def test_has_long_type(self):
         self.assertTrue(twobitreader.true_long_type() in ["L", "I"])
 

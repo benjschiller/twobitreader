@@ -5,35 +5,20 @@ Licensed under Perl Artistic License 2.0
 No warranty is provided, express or implied
 """
 
+import logging
+import sys
+import textwrap
 from array import array
 from bisect import bisect_right
-from errno import ENOENT, EACCES
-from os import R_OK, access
+from errno import EACCES, ENOENT
+from importlib.metadata import PackageNotFoundError, version
+from os import R_OK, access, strerror
+from os.path import exists, getsize
 
 try:
-    from os import strerror
-except ImportError:
-    strerror = lambda x: "strerror not supported"
-from os.path import exists, getsize
-import logging
-import textwrap
-import sys
-
-at_least_py3 = at_least_py32 = False
-if sys.version_info > (3,):
-    at_least_py3 = True
-if sys.version_info > (3, 2):
-    at_least_py32 = True
-
-if at_least_py3:
-    izip = zip
-    xrange = range
-    iteritems = dict.items
-    long = int
-else:
-    from itertools import izip
-
-    iteritems = dict.iteritems
+    __version__ = version("twobitreader")
+except PackageNotFoundError:
+    __version__ = "0+unknown"
 
 
 def safe_tostring(ary):
@@ -115,7 +100,7 @@ def base_to_bin(x):
 def create_byte_table():
     """create BYTE_TABLE"""
     d = {}
-    for x in xrange(2**8):
+    for x in range(2**8):
         d[x] = byte_to_bases(x)
     return d
 
@@ -133,7 +118,7 @@ def split16(x):
 def create_twobyte_table():
     """create TWOBYTE_TABLE"""
     d = {}
-    for x in xrange(2**16):
+    for x in range(2**16):
         c, f = split16(x)
         d[x] = list(byte_to_bases(c)) + list(byte_to_bases(f))
     return d
@@ -218,14 +203,11 @@ def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size, 
 
     dna = list("N" * (longs_len * 16 + 4 * shorts_length))
     # translate from 32-bit blocks to bytes
-    # this method ensures correct endianess (byteswap as neeed)
+    # Preserve the byte order used by packed DNA on disk.
     i = 0
     if longs_len > 0:
         bytes_ = array("B")
-        if at_least_py32:
-            bytes_.frombytes(longs.tobytes())
-        else:
-            bytes_.fromstring(longs.tostring())
+        bytes_.frombytes(longs.tobytes())
         # first block
         first_block = "".join(["".join(BYTE_TABLE[bytes_[x]]) for x in range(4)])
         i = 16 - first_base_offset
@@ -246,10 +228,7 @@ def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size, 
         i += 16
     if more_bytes is not None:
         bytes_ = array("B")
-        if at_least_py32:
-            bytes_.frombytes(more_bytes)
-        else:
-            bytes_.fromstring(more_bytes)
+        bytes_.frombytes(more_bytes)
         j = i
         for byte in bytes_:
             j = i + 4
@@ -301,7 +280,7 @@ class TwoBitFile(dict):
         self._file_handle = open(foo, "rb")
         self._load_header()
         self._load_index()
-        for name, offset in iteritems(self._offset_dict):
+        for name, offset in self._offset_dict.items():
             self[name] = TwoBitSequence(self._file_handle, offset, self._file_size, self._byteswapped)
         return
 
@@ -331,15 +310,15 @@ class TwoBitFile(dict):
         # if not, swap bytes
         byteswapped = False
         signature, version, sequence_count, reserved = header
-        if not signature == 0x1A412743:
+        if signature != 0x1A412743:
             byteswapped = True
             header.byteswap()
             signature2, version, sequence_count, reserved = header
-            if not signature2 == 0x1A412743:
+            if signature2 != 0x1A412743:
                 raise TwoBitFileError("Signature in header should be " + "0x1A412743, instead found 0x%X" % signature)
-        if not version == 0:
+        if version != 0:
             raise TwoBitFileError("File version in header should be 0.")
-        if not reserved == 0:
+        if reserved != 0:
             raise TwoBitFileError("Reserved field in header should be 0.")
         self._byteswapped = byteswapped
         self._sequence_count = sequence_count
@@ -371,7 +350,7 @@ class TwoBitFile(dict):
         d = {}
         file_handle = self._file_handle
         byteswapped = self._byteswapped
-        for name, offset in iteritems(self._offset_dict):
+        for name, offset in self._offset_dict.items():
             file_handle.seek(offset)
             dna_size = array(LONG)
             dna_size.fromfile(file_handle, 1)
@@ -414,7 +393,6 @@ class TwoBitSequence(object):
         self._file_size = file_size
         self._file_handle = file_handle
         self._original_offset = offset
-        self._byteswapped = byteswapped
         file_handle.seek(offset)
         header = array(LONG)
         header.fromfile(file_handle, 2)
@@ -422,9 +400,8 @@ class TwoBitSequence(object):
             header.byteswap()
         dna_size, n_block_count = header
         self._dna_size = dna_size  # number of characters, 2 bits each
-        self._n_bytes = (dna_size + 3) / 4  # number of bytes
         # number of 32-bit fragments
-        self._packed_dna_size = (dna_size + 15) / 16
+        self._packed_dna_size = (dna_size + 15) // 16
         n_block_starts = array(LONG)
         n_block_sizes = array(LONG)
         n_block_starts.fromfile(file_handle, n_block_count)
@@ -500,15 +477,12 @@ class TwoBitSequence(object):
 
         # load all the data
         file_handle = self._file_handle
-        byteswapped = self._byteswapped
         n_block_starts = self._n_block_starts
         n_block_sizes = self._n_block_sizes
         mask_block_starts = self._mask_block_starts
         mask_block_sizes = self._mask_block_sizes
         offset = self._offset
         packed_dna_size = self._packed_dna_size
-        # n_bytes = self._n_bytes
-
         # region_size is how many bases the region is
         if max_ is None:
             region_size = dna_size - min_
@@ -537,12 +511,9 @@ class TwoBitSequence(object):
             blocks_to_read = packed_dna_size - start_block
 
         fourbyte_dna = array(LONG)
-        # remainder_seq = None
         if (blocks_to_read * 4 + local_offset) > self._file_size:
             fourbyte_dna.fromfile(file_handle, blocks_to_read - 1)
             morebytes = file_handle.read()  # read the remaining characters
-        #            if byteswapped:
-        #                morebytes = ''.join(reversed(morebytes))
         else:
             fourbyte_dna.fromfile(file_handle, blocks_to_read)
             morebytes = None
@@ -551,7 +522,7 @@ class TwoBitSequence(object):
         )
         first_n_region = max(0, bisect_right(n_block_starts, min_) - 1)
         last_n_region = min(len(n_block_starts), 1 + bisect_right(n_block_starts, max_, lo=first_n_region))
-        for start, size in izip(n_block_starts[first_n_region:last_n_region], n_block_sizes[first_n_region:last_n_region]):
+        for start, size in zip(n_block_starts[first_n_region:last_n_region], n_block_sizes[first_n_region:last_n_region]):
             end = start + size
             if end <= min_:
                 continue
@@ -563,12 +534,12 @@ class TwoBitSequence(object):
                 end = max_
             start -= min_
             end -= min_
-            # this should actually be decoded, 00=N, 01=n
+            # N blocks override the bases decoded from packed DNA.
             str_as_array[start:end] = list("N" * (end - start))
         lower = str.lower
         first_masked_region = max(0, bisect_right(mask_block_starts, min_) - 1)
         last_masked_region = min(len(mask_block_starts), 1 + bisect_right(mask_block_starts, max_, lo=first_masked_region))
-        for start, size in izip(
+        for start, size in zip(
             mask_block_starts[first_masked_region:last_masked_region], mask_block_sizes[first_masked_region:last_masked_region]
         ):
             end = start + size
@@ -583,7 +554,7 @@ class TwoBitSequence(object):
             start -= min_
             end -= min_
             str_as_array[start:end] = list(lower(safe_tostring(str_as_array[start:end])))
-        if not len(str_as_array) == max_ - min_:
+        if len(str_as_array) != max_ - min_:
             raise RuntimeError("Sequence was the wrong size")
         return safe_tostring(str_as_array)
 
@@ -683,17 +654,14 @@ def cmdline_reader():
         print(argv[0] + ":")
         print(cmdline_reader.__doc__)
         sys.exit()
-        return
     # if user is trying to get help, print docstring
     elif len(argv) == 2 and argv[1] in ["--help", "-h", "-help"]:
         print(argv[0] + ":")
         print(cmdline_reader.__doc__)
         sys.exit()
-        return
     # if user specified multiple files, exit with error
     elif len(argv) > 2:
         sys.exit("Too many files specified")
-        return
     # otherwise proceed with opening the .2bit file
     twobit_file = TwoBitFile(argv[1])
     # print error/warning messages as we go
@@ -721,15 +689,15 @@ def twobit_reader(twobit_file, input_stream=None, write=None):
         return
     for i, line in enumerate((line.rstrip("\n\r") for line in input_stream)):
         fields = line.split()
-        if not len(fields) >= 3:
+        if len(fields) < 3:
             logging.warning(warning_msg, "start", i, line)
             continue
         chrom = fields[0]
-        if not chrom in twobit_file:
+        if chrom not in twobit_file:
             logging.warning(warning_msg, "chrom", i, line)
             continue
         try:
-            start = long(fields[1])
+            start = int(fields[1])
         except ValueError:
             logging.warning(warning_msg, "start", i, line)
             continue
@@ -738,12 +706,12 @@ def twobit_reader(twobit_file, input_stream=None, write=None):
             logging.warning("Using 0 as start instead for line %d", i)
             start = 0
         try:
-            end = long(fields[2])
+            end = int(fields[2])
         except ValueError:
             logging.warning(warning_msg, "end", i, line)
             continue
         chrom_len = len(twobit_file[chrom])
-        if end > len(twobit_file[chrom]):
+        if end > chrom_len:
             logging.warning("At line %d, end is greater than chrom length %d\n%s", i, chrom_len, line)
             logging.warning("Sequence will be truncated at chrom" + "length for line %d", i)
             end = chrom_len

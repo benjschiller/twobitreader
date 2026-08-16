@@ -55,5 +55,9 @@ coverage.xml
 # Sphinx documentation
 doc/_build/
 
+# Local editor and environment files
+*.code-workspace
+/uv.lock
+
 # PyBuilder
 target/
