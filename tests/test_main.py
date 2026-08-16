@@ -242,20 +242,30 @@ class GeneratedTwoBitFileTest(unittest.TestCase):
             self.assertEqual(reader["chr1"][18:29], "GTNNNNncgtA")
 
     def test_big_endian_file(self):
+        # Packed DNA decodes to distinct on-disk bytes 0x9c36e407fa618d43 whose per-32-bit-word
+        # reversal differs (0x07e4369c438d61fa). This keeps the case sensitive to raw on-disk byte
+        # order: an errant byteswap() on the packed longs would corrupt the decode and fail below.
+        seq = "ACGTTGCAGACTTTCGGGAACATCATGCCTTG"
+        packed = pack_sequence(seq, pad_to_long=False)
+        self.assertEqual(packed, b"\x9c\x36\xe4\x07\xfa\x61\x8d\x43")
+        per_word_reversed = b"".join(packed[i : i + 4][::-1] for i in range(0, len(packed), 4))
+        self.assertNotEqual(per_word_reversed, packed)
         write_twobit_file(
             self.filename,
             {
                 "chrBE": {
-                    "seq": "ACGTACGTACGTACGTACGTACGTACGTACGT",
+                    "seq": seq,
                     "n_blocks": [(4, 3)],
                     "mask_blocks": [(10, 4)],
-                },
-            },
+                 },
+             },
             byte_order=">",
-        )
+         )
         with twobitreader.TwoBitFile(self.filename) as reader:
             self.assertEqual(reader.sequence_sizes(), {"chrBE": 32})
-            self.assertEqual(reader["chrBE"][:], "ACGTNNNTACgtacGTACGTACGTACGTACGT")
+            self.assertEqual(reader["chrBE"][:], "ACGTNNNAGActttCGGGAACATCATGCCTTG")
+            self.assertEqual(reader["chrBE"][8:13], "GActt")
+            self.assertEqual(reader["chrBE"][-1], "G")
 
     def test_slices_within_unpadded_final_block(self):
         expected = "TGTACGTACGA"
