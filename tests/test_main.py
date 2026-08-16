@@ -257,10 +257,10 @@ class GeneratedTwoBitFileTest(unittest.TestCase):
                     "seq": seq,
                     "n_blocks": [(4, 3)],
                     "mask_blocks": [(10, 4)],
-                 },
-             },
+                },
+            },
             byte_order=">",
-         )
+        )
         with twobitreader.TwoBitFile(self.filename) as reader:
             self.assertEqual(reader.sequence_sizes(), {"chrBE": 32})
             self.assertEqual(reader["chrBE"][:], "ACGTNNNAGActttCGGGAACATCATGCCTTG")
