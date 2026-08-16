@@ -1,6 +1,6 @@
 [project]
 name = "twobitreader"
-version = "4.0.0"
+version = "4.0.1"
 description = "A fast, pure-Python package for reading .2bit files (used by the UCSC genome browser)"
 readme = "README.md"
 authors = [

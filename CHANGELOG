@@ -1,3 +1,14 @@
+08-16-26
+Version 4.0.1
+Fix reading .2bit files written with the opposite byte order. Sequence names
+and packed DNA now retain their on-disk byte order, while multi-byte numeric
+fields continue to be swapped. Add big-endian regression coverage for sequence
+names, sizes, N blocks, mask blocks, and decoded bases.
+
+Remove unsupported Python 2 and early Python 3 compatibility code, keep packed
+DNA block counts integer-valued, and expose the installed package version as
+twobitreader.__version__.
+
 06-22-26
 Version 4.0.0
 Replace deprecated array('u') decoded sequence buffers with plain Python
