@@ -1,4 +1,11 @@
 08-16-26
+Version 4.0.2
+Fix narrow slices and negative indexing within an unpadded final packed-DNA
+block. The EOF byte-tail decoder now applies the requested intra-block offset.
+Add a regression test matching the layout that exposed the bug in the UCSC
+dm6 assembly.
+
+08-16-26
 Version 4.0.1
 Fix reading .2bit files written with the opposite byte order. Sequence names
 and packed DNA now retain their on-disk byte order, while multi-byte numeric
