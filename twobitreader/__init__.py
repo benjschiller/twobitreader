@@ -353,14 +353,10 @@ class TwoBitFile(dict):
         while remaining > 0:
             name_size = array("B")
             name_size.fromfile(file_handle, 1)
-            if byteswapped:
-                name_size.byteswap()
             name = array("B")
             name.fromfile(file_handle, name_size[0])
             name = "".join([chr(X) for X in name])
 
-            if byteswapped:
-                name.byteswap()
             offset = array(LONG)
             offset.fromfile(file_handle, 1)
             if byteswapped:
@@ -550,8 +546,6 @@ class TwoBitSequence(object):
         else:
             fourbyte_dna.fromfile(file_handle, blocks_to_read)
             morebytes = None
-        if byteswapped:
-            fourbyte_dna.byteswap()
         str_as_array = longs_to_char_array(
             fourbyte_dna, first_base_offset, last_base_offset, region_size, more_bytes=morebytes
         )

@@ -37,27 +37,27 @@ def pack_sequence(seq):
     return bytes(packed)
 
 
-def twobit_record(seq, n_blocks=(), mask_blocks=()):
+def twobit_record(seq, n_blocks=(), mask_blocks=(), byte_order="<"):
     n_starts = [start for start, _ in n_blocks]
     n_sizes = [size for _, size in n_blocks]
     mask_starts = [start for start, _ in mask_blocks]
     mask_sizes = [size for _, size in mask_blocks]
     return b"".join(
         [
-            struct.pack("<I", len(seq)),
-            struct.pack("<I", len(n_blocks)),
-            b"".join(struct.pack("<I", start) for start in n_starts),
-            b"".join(struct.pack("<I", size) for size in n_sizes),
-            struct.pack("<I", len(mask_blocks)),
-            b"".join(struct.pack("<I", start) for start in mask_starts),
-            b"".join(struct.pack("<I", size) for size in mask_sizes),
-            struct.pack("<I", 0),
+            struct.pack(byte_order + "I", len(seq)),
+            struct.pack(byte_order + "I", len(n_blocks)),
+            b"".join(struct.pack(byte_order + "I", start) for start in n_starts),
+            b"".join(struct.pack(byte_order + "I", size) for size in n_sizes),
+            struct.pack(byte_order + "I", len(mask_blocks)),
+            b"".join(struct.pack(byte_order + "I", start) for start in mask_starts),
+            b"".join(struct.pack(byte_order + "I", size) for size in mask_sizes),
+            struct.pack(byte_order + "I", 0),
             pack_sequence(seq),
         ]
     )
 
 
-def write_twobit_file(path, sequences):
+def write_twobit_file(path, sequences, byte_order="<"):
     names = list(sequences)
     index_size = sum(1 + len(name.encode("ascii")) + 4 for name in names)
     offset = 16 + index_size
@@ -66,15 +66,15 @@ def write_twobit_file(path, sequences):
     for name in names:
         encoded_name = name.encode("ascii")
         data = sequences[name]
-        body = twobit_record(data["seq"], data.get("n_blocks", ()), data.get("mask_blocks", ()))
-        index.append(struct.pack("B", len(encoded_name)) + encoded_name + struct.pack("<I", offset))
+        body = twobit_record(data["seq"], data.get("n_blocks", ()), data.get("mask_blocks", ()), byte_order)
+        index.append(struct.pack("B", len(encoded_name)) + encoded_name + struct.pack(byte_order + "I", offset))
         records.append(body)
         offset += len(body)
     with open(path, "wb") as handle:
         handle.write(
             b"".join(
                 [
-                    struct.pack("<IIII", 0x1A412743, 0, len(names), 0),
+                    struct.pack(byte_order + "IIII", 0x1A412743, 0, len(names), 0),
                     b"".join(index),
                     b"".join(records),
                 ]
@@ -235,6 +235,22 @@ class GeneratedTwoBitFileTest(unittest.TestCase):
         with twobitreader.TwoBitFile(self.filename) as reader:
             self.assertEqual(reader["chr1"][0:12], "ACGTNNNTACgt")
             self.assertEqual(reader["chr1"][18:29], "GTNNNNncgtA")
+
+    def test_big_endian_file(self):
+        write_twobit_file(
+            self.filename,
+            {
+                "chrBE": {
+                    "seq": "ACGTACGTACGTACGTACGTACGTACGTACGT",
+                    "n_blocks": [(4, 3)],
+                    "mask_blocks": [(10, 4)],
+                },
+            },
+            byte_order=">",
+        )
+        with twobitreader.TwoBitFile(self.filename) as reader:
+            self.assertEqual(reader.sequence_sizes(), {"chrBE": 32})
+            self.assertEqual(reader["chrBE"][:], "ACGTNNNTACgtacGTACGTACGTACGTACGT")
 
 
 class CheckTestTwoBitFileTest(unittest.TestCase):
