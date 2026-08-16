@@ -18,7 +18,7 @@ BASE_TO_BITS = {
 }
 
 
-def pack_sequence(seq):
+def pack_sequence(seq, pad_to_long=True):
     packed = bytearray()
     for block_start in range(0, len(seq), 4):
         byte = 0
@@ -26,12 +26,13 @@ def pack_sequence(seq):
         for index, base in enumerate(block):
             byte |= BASE_TO_BITS[base.upper()] << (6 - index * 2)
         packed.append(byte)
-    while len(packed) % 4:
-        packed.append(0)
+    if pad_to_long:
+        while len(packed) % 4:
+            packed.append(0)
     return bytes(packed)
 
 
-def twobit_record(seq, n_blocks=(), mask_blocks=(), byte_order="<"):
+def twobit_record(seq, n_blocks=(), mask_blocks=(), byte_order="<", pad_packed_dna=True):
     n_starts = [start for start, _ in n_blocks]
     n_sizes = [size for _, size in n_blocks]
     mask_starts = [start for start, _ in mask_blocks]
@@ -46,12 +47,12 @@ def twobit_record(seq, n_blocks=(), mask_blocks=(), byte_order="<"):
             b"".join(struct.pack(byte_order + "I", start) for start in mask_starts),
             b"".join(struct.pack(byte_order + "I", size) for size in mask_sizes),
             struct.pack(byte_order + "I", 0),
-            pack_sequence(seq),
+            pack_sequence(seq, pad_to_long=pad_packed_dna),
         ]
     )
 
 
-def write_twobit_file(path, sequences, byte_order="<"):
+def write_twobit_file(path, sequences, byte_order="<", pad_packed_dna=True):
     names = list(sequences)
     index_size = sum(1 + len(name.encode("ascii")) + 4 for name in names)
     offset = 16 + index_size
@@ -60,7 +61,13 @@ def write_twobit_file(path, sequences, byte_order="<"):
     for name in names:
         encoded_name = name.encode("ascii")
         data = sequences[name]
-        body = twobit_record(data["seq"], data.get("n_blocks", ()), data.get("mask_blocks", ()), byte_order)
+        body = twobit_record(
+            data["seq"],
+            data.get("n_blocks", ()),
+            data.get("mask_blocks", ()),
+            byte_order,
+            pad_packed_dna,
+        )
         index.append(struct.pack("B", len(encoded_name)) + encoded_name + struct.pack(byte_order + "I", offset))
         records.append(body)
         offset += len(body)
@@ -249,6 +256,20 @@ class GeneratedTwoBitFileTest(unittest.TestCase):
         with twobitreader.TwoBitFile(self.filename) as reader:
             self.assertEqual(reader.sequence_sizes(), {"chrBE": 32})
             self.assertEqual(reader["chrBE"][:], "ACGTNNNTACgtacGTACGTACGTACGTACGT")
+
+    def test_slices_within_unpadded_final_block(self):
+        expected = "TGTACGTACGA"
+        write_twobit_file(
+            self.filename,
+            {"chrTail": {"seq": expected}},
+            pad_packed_dna=False,
+        )
+
+        with twobitreader.TwoBitFile(self.filename) as reader:
+            sequence = reader["chrTail"]
+            self.assertEqual(sequence[:], expected)
+            self.assertEqual(sequence[8:11], expected[8:11])
+            self.assertEqual(sequence[-1], expected[-1])
 
 
 class CheckTestTwoBitFileTest(unittest.TestCase):

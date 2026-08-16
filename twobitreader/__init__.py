@@ -201,6 +201,10 @@ def longs_to_char_array(longs, first_base_offset, last_base_offset, array_size, 
     if array_size > longs_len * 16 + 4 * shorts_length:
         raise ValueError("array_size exceeds maximum possible for input")
 
+    if longs_len == 0 and more_bytes is not None:
+        decoded = [base for byte in more_bytes for base in BYTE_TABLE[byte]]
+        return decoded[first_base_offset : first_base_offset + array_size]
+
     dna = list("N" * (longs_len * 16 + 4 * shorts_length))
     # translate from 32-bit blocks to bytes
     # Preserve the byte order used by packed DNA on disk.
